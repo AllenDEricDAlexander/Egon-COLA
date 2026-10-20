@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
+import static top.egon.cola.component.yuheng.admin.config.GatewayPersistenceTestSupport.persistenceContext;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -38,7 +40,7 @@ class GatewayReleaseReconcilerTest {
             Instant.parse("2026-07-26T08:00:00Z");
 
     @Test
-    void resumesAttemptByJournalAndAdvancesDraftAfterActivationSuccess() {
+    void resumesAttemptByJournalAndAdvancesDraftAfterActivationSuccess() throws Exception {
         GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayReleasePublicationCoordinator coordinator =
                 mock(GatewayReleasePublicationCoordinator.class);
@@ -64,7 +66,8 @@ class GatewayReleaseReconcilerTest {
                 coordinator,
                 drafts,
                 transactions(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                persistenceContext()
         );
 
         reconciler.reconcile();
@@ -82,11 +85,11 @@ class GatewayReleaseReconcilerTest {
                 eq(NOW)
         );
         assertThat(draft.getBasedOnReleaseId()).isEqualTo("release-1");
-        verify(drafts).flush();
+        verify(drafts).save(draft);
     }
 
     @Test
-    void failedPhaseDoesNotAdvanceDraft() {
+    void failedPhaseDoesNotAdvanceDraft() throws Exception {
         GatewayReleaseRepository releases = mock(GatewayReleaseRepository.class);
         GatewayReleasePublicationCoordinator coordinator =
                 mock(GatewayReleasePublicationCoordinator.class);
@@ -105,7 +108,8 @@ class GatewayReleaseReconcilerTest {
                 coordinator,
                 drafts,
                 transactions(),
-                Clock.fixed(NOW, ZoneOffset.UTC)
+                Clock.fixed(NOW, ZoneOffset.UTC),
+                persistenceContext()
         );
 
         reconciler.reconcile();
@@ -121,7 +125,7 @@ class GatewayReleaseReconcilerTest {
                 eq(List.of()),
                 eq(NOW)
         );
-        verify(drafts, never()).flush();
+        verify(drafts, never()).save(org.mockito.ArgumentMatchers.any(GatewayDraftBO.class));
     }
 
     private top.egon.cola.component.yuheng.admin.release.domain.vo.GatewayPublicationOutcomeVO outcome(

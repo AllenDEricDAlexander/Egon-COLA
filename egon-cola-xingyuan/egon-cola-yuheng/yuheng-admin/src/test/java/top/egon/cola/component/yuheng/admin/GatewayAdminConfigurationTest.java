@@ -41,11 +41,11 @@ class GatewayAdminConfigurationTest {
         new org.springframework.boot.test.context.runner.ApplicationContextRunner()
                 .withUserConfiguration(type,
                         top.egon.cola.component.yuheng.admin.runtime.service.GatewayEngineRoleConsistencyStrategy.class)
-                .withBean("gatewayGroupRepository", top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository.class,
+                .withBean("mpGatewayGroupRepository", top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository.class,
                         () -> mock(top.egon.cola.component.yuheng.admin.group.repository.GatewayGroupRepository.class))
                 .withBean("gatewayReleaseService", top.egon.cola.component.yuheng.admin.release.service.GatewayReleaseService.class,
                         () -> mock(top.egon.cola.component.yuheng.admin.release.service.GatewayReleaseService.class))
-                .withBean("jdbcGatewayReleasePublicationRepository",
+                .withBean("mpGatewayReleasePublicationRepository",
                         top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository.class,
                         () -> mock(top.egon.cola.component.yuheng.admin.release.repository.GatewayReleasePublicationRepository.class))
                 .withBean("gatewayProjectionClock", java.time.Clock.class,
@@ -119,6 +119,9 @@ class GatewayAdminConfigurationTest {
 
     @Test
     void providesOpenApiMapperWithJavaTimeSupport() throws Exception {
+        assertThat(GatewayAdminConfiguration.class.getDeclaredMethod("gatewayOpenApiObjectMapper")
+                .getAnnotation(org.springframework.context.annotation.Bean.class).name())
+                .containsExactly("gatewayOpenApiObjectMapper", "jacksonObjectMapper");
         ObjectMapper mapper = new GatewayAdminConfiguration()
                 .gatewayOpenApiObjectMapper();
 

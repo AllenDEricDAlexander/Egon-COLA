@@ -1,13 +1,5 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.token.repository.impl;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
 import java.math.BigInteger;
 import java.time.Clock;
 import java.time.Instant;
@@ -68,8 +60,8 @@ public class OAuthSigningKeyRepositoryImpl extends EgonColaRepository<OAuthSigni
     @Override
     @Transactional(readOnly = true)
     public Optional<OAuthSigningKeyBO> findByKid(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotBlank @Size(max = 128) String kid) {
+            TrustedRealmBO trustedRealm,
+            String kid) {
         String value = requiredKid(kid);
         return withTrustedStoragePartition(trustedRealm, tenantId -> Optional.ofNullable(
                         baseMapper.selectByKid(tenantId, value))
@@ -79,8 +71,8 @@ public class OAuthSigningKeyRepositoryImpl extends EgonColaRepository<OAuthSigni
     @Override
     @Transactional
     public Optional<OAuthSigningKeyBO> findByKidForUpdate(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotBlank @Size(max = 128) String kid) {
+            TrustedRealmBO trustedRealm,
+            String kid) {
         String value = requiredKid(kid);
         return withTrustedStoragePartition(trustedRealm, tenantId -> Optional.ofNullable(
                         baseMapper.selectByKidForUpdate(tenantId, value))
@@ -90,10 +82,10 @@ public class OAuthSigningKeyRepositoryImpl extends EgonColaRepository<OAuthSigni
     @Override
     @Transactional(readOnly = true)
     public List<OAuthSigningKeyBO> findByStatuses(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotNull @Size(min = 1, max = 5) Collection<@NotNull OAuthKeyStatusEnum> statuses,
-            @PositiveOrZero long afterId,
-            @Min(1) @Max(8) int limit) {
+            TrustedRealmBO trustedRealm,
+            Collection<OAuthKeyStatusEnum> statuses,
+            long afterId,
+            int limit) {
         List<OAuthKeyStatusEnum> values = List.copyOf(Objects.requireNonNull(statuses, "statuses"));
         if (values.isEmpty() || values.size() > 5 || limit < 1 || limit > 8) {
             throw new IllegalArgumentException("OAUTH_SIGNING_KEY_QUERY_RANGE_INVALID");
@@ -107,9 +99,9 @@ public class OAuthSigningKeyRepositoryImpl extends EgonColaRepository<OAuthSigni
     @Override
     @Transactional
     public OAuthSigningKeyBO save(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotNull @Valid OAuthSigningKeyBO key,
-            @PositiveOrZero long expectedVersion) {
+            TrustedRealmBO trustedRealm,
+            OAuthSigningKeyBO key,
+            long expectedVersion) {
         Objects.requireNonNull(key, "key");
         String kid = requiredKid(key.getKid());
         validateSigningKey(key);
@@ -156,9 +148,9 @@ public class OAuthSigningKeyRepositoryImpl extends EgonColaRepository<OAuthSigni
     @Override
     @Transactional
     public boolean deleteVersionedById(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @Positive Long id,
-            @PositiveOrZero long expectedVersion) {
+            TrustedRealmBO trustedRealm,
+            Long id,
+            long expectedVersion) {
         Objects.requireNonNull(id, "id");
         return withTrustedStoragePartition(trustedRealm, tenantId -> {
             OAuthSigningKeyPO current = baseMapper.selectActiveById(tenantId, id);

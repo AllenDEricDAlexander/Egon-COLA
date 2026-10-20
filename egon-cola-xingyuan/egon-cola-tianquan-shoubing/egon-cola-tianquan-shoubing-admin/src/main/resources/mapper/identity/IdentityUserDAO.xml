@@ -28,40 +28,40 @@
 
     <select id="selectActiveById" resultMap="IdentityUserPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_user
+        FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
     <select id="selectActiveByIds" resultMap="IdentityUserPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_user
+        FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
         ORDER BY username_normalized, identity_sub
     </select>
     <select id="selectByExternalKey" resultMap="IdentityUserPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_user
+        FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{directoryPartitionId} AND identity_sub = #{identitySub} AND deleted_at IS NULL
     </select>
     <select id="selectByNormalizedUsername" resultMap="IdentityUserPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_user
+        FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{directoryPartitionId} AND username_normalized = #{normalizedUsername} AND deleted_at IS NULL
     </select>
     <select id="selectForUpdate" resultMap="IdentityUserPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_user
+        FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{directoryPartitionId} AND identity_sub = #{identitySub} AND deleted_at IS NULL
         FOR UPDATE
     </select>
     <select id="selectDirectory" resultMap="IdentityUserPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_user
+        FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{directoryPartitionId} AND deleted_at IS NULL
         ORDER BY username_normalized, identity_sub
     </select>
     <update id="updateExpectedVersion">
-        UPDATE oauth_identity_user
+        UPDATE tianquan_oauth.oauth_identity_user
         SET username = #{po.username},
             display_name = #{po.displayName},
             status = #{po.status},
@@ -78,7 +78,7 @@
           AND deleted_at IS NULL
     </update>
     <update id="deleteVersionedById">
-        UPDATE oauth_identity_user
+        UPDATE tianquan_oauth.oauth_identity_user
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{et.updateUserId},

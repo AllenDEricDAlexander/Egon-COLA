@@ -32,6 +32,8 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
     @Qualifier("serviceAccessTokenVerifier") private final ServiceAccessTokenVerifier serviceTokens;
     private final DdcRegistrationPolicyBO policy;
     @Qualifier("idpClock") private final Clock clock;
+    private final java.util.concurrent.atomic.AtomicReference<String> lastUnavailableReason =
+            new java.util.concurrent.atomic.AtomicReference<>();
 
     /** Creates the production Tianshu registration verifier. */
     public IdpJwtDdcRegistrationCredentialVerifier(
@@ -86,7 +88,11 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
         try {
             AccessTokenVerification<ServiceIdentityPrincipal> result =
                     serviceTokens.verify(registrationToken);
-            if (result instanceof AccessTokenVerification.Unavailable<?>) {
+            if (result instanceof AccessTokenVerification.Unavailable<?> unavailable) {
+                if (!unavailable.reasonCode().equals(lastUnavailableReason.getAndSet(unavailable.reasonCode()))) {
+                    log.warn("Tianshu registration credential dependency unavailable; bizCode={} appCode={} env={} reasonCode={}",
+                            bizCode, appCode, env, unavailable.reasonCode());
+                }
                 throw failure(DdcErrorStatus.RESOURCE_ADMISSION_UNAVAILABLE);
             }
             if (result instanceof AccessTokenVerification.Expired<?>) {
@@ -103,6 +109,7 @@ public final class IdpJwtDdcRegistrationCredentialVerifier
                             .principal();
             validateToken(principal);
             validateBinding(principal, bizCode, appCode, env, instanceId);
+            lastUnavailableReason.set(null);
             return new VerifiedDdcRegistrationIdentity(
                     principal.appId(),
                     principal.clientId(),

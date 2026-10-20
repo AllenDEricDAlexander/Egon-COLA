@@ -446,6 +446,14 @@ PropertySource，其优先级高于本地 ConfigData、低于 Spring Boot 的命
 `egon.cola.component.tianshu.*`、`spring.config.*` 或 Spring Profile 控制键，整份文档都会
 被拒绝，因此 Tianshu 连接和引导参数只能来自本地配置。
 
+控制面冷启动可结合可选导入，显式设置 `egon.cola.component.tianshu.defer-initial-load=true`，
+先安装版本为零的空动态属性源，由运行期协调器完成首次远端拉取。该选项默认 `false`，
+必选导入拒绝启用；有效租约和成功对账仍是进入 `READY` 的必要条件。需要先启动依赖服务时，
+在同一 Tianshu 前缀下使用已有的 `consistency.fail-fast=false` 和 `registry.http.fail-fast=false`，
+允许启动后恢复注册。ConfigData RPC
+在首次调用前按本地显式的 `egon.cola.component.id.machine-id` 与 `max-clock-backward`
+初始化 ID 引擎，后续 ID 自动装配复核同一绑定。
+
 配置格式以 `DdcConfigFormatStrategy` 和 `DdcConfigFormatStrategyRegistry` 作为扩展点。
 当前内置策略只有 YAML，并由 Spring Boot `YamlPropertySourceLoader` 负责解析；JSON、
 Properties、TOML 等格式没有兼容实现，也不会被注册表接受。

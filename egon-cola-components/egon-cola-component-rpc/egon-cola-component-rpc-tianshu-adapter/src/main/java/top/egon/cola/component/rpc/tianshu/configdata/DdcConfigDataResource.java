@@ -44,6 +44,9 @@ public final class DdcConfigDataResource extends ConfigDataResource {
      */
     private final String resourceName;
 
+    /** Explicit optional bootstrap mode; the initial dynamic source has version zero. */
+    private final boolean deferInitialLoad;
+
     /**
      * 创建 Tianshu ConfigData 资源描述。 Creates a Tianshu ConfigData resource descriptor.
      *
@@ -62,9 +65,23 @@ public final class DdcConfigDataResource extends ConfigDataResource {
                                  String namespace,
                                  String appCode,
                                  String resourceName) {
+        this(optional, tenantId, bizCode, env, namespace, appCode, resourceName, false);
+    }
+
+    public DdcConfigDataResource(boolean optional,
+                                 long tenantId,
+                                 String bizCode,
+                                 String env,
+                                 String namespace,
+                                 String appCode,
+                                 String resourceName,
+                                 boolean deferInitialLoad) {
         super(optional);
         if (tenantId <= 0) {
             throw new IllegalArgumentException("tenantId must be positive");
+        }
+        if (deferInitialLoad && !optional) {
+            throw new IllegalArgumentException("defer-initial-load requires optional:tianshu config");
         }
         this.optional = optional;
         this.tenantId = tenantId;
@@ -73,6 +90,11 @@ public final class DdcConfigDataResource extends ConfigDataResource {
         this.namespace = namespace;
         this.appCode = appCode;
         this.resourceName = resourceName;
+        this.deferInitialLoad = deferInitialLoad;
+    }
+
+    public boolean deferInitialLoad() {
+        return deferInitialLoad;
     }
 
     /**

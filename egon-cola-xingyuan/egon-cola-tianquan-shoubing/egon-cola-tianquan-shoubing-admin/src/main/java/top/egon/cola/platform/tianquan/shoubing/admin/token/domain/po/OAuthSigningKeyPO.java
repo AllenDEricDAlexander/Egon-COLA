@@ -3,7 +3,6 @@ package top.egon.cola.platform.tianquan.shoubing.admin.token.domain.po;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import jakarta.validation.constraints.NotBlank;
@@ -21,6 +20,7 @@ import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthJsonbTypeHandler;
 import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthKeyStatusEnum;
 
 @Data
@@ -29,7 +29,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthKe
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_signing_key", autoResultMap = true)
+@TableName(value = "oauth_signing_key", schema = "tianquan_oauth", autoResultMap = true)
 public class OAuthSigningKeyPO extends EgonModel<OAuthSigningKeyPO> {
 
     @TableField(value = "kid", updateStrategy = FieldStrategy.NEVER)
@@ -52,7 +52,7 @@ public class OAuthSigningKeyPO extends EgonModel<OAuthSigningKeyPO> {
             EgonColaModelValidationGroups.Persisted.class})
     private String algorithm = "RS256";
 
-    @TableField(value = "public_jwk", typeHandler = JacksonTypeHandler.class, updateStrategy = FieldStrategy.NEVER)
+    @TableField(value = "public_jwk", typeHandler = OAuthJsonbTypeHandler.class, updateStrategy = FieldStrategy.NEVER)
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
     private JsonNode publicJwk;

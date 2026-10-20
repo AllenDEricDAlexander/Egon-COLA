@@ -42,6 +42,9 @@ import java.util.regex.Pattern;
 public final class EgonColaPostgreDdlRunner {
 
     private static final int MAX_SCRIPT_BYTES = 10 * 1024 * 1024;
+    private static final ScriptBO HISTORY_TABLE = new ScriptBO("20261018_001",
+            "db/egon-ddl/V20261018_001__initialize_managed_ddl_history.sql",
+            "917a536881759702efe51dec1c36dc282e3977df6171ce2721ac76ef20bab719");
     private static final Pattern NONTRANSACTIONAL = Pattern.compile("(?is)(?:^|;)\\s*(?:BEGIN|START\\s+TRANSACTION|COMMIT|ROLLBACK|ABORT|END|PREPARE\\s+TRANSACTION|VACUUM|DISCARD|" + "(?:CREATE|DROP)\\s+(?:DATABASE|TABLESPACE)|ALTER\\s+SYSTEM)\\b|\\bCONCURRENTLY\\b");
 
     @Qualifier("egonColaValidationUtils")
@@ -80,7 +83,9 @@ public final class EgonColaPostgreDdlRunner {
     private Map<ScriptBO, byte[]> loadScripts(List<EgonColaDdlTargetBO> targets) {
         Map<ScriptBO, byte[]> loaded = new HashMap<>();
         for (EgonColaDdlTargetBO target : targets) {
-            for (ScriptBO script : target.manifest().scripts()) {
+            List<ScriptBO> required = new ArrayList<>(target.manifest().scripts());
+            required.add(HISTORY_TABLE);
+            for (ScriptBO script : required) {
                 if (loaded.containsKey(script)) {
                     continue;
                 }
@@ -120,20 +125,29 @@ public final class EgonColaPostgreDdlRunner {
             try {
                 validatePrimary(connection, target);
                 configureAndLock(connection, target);
-                int installed = installedPrefix(connection, target);
+                InstalledPrefixBO prefix = installedPrefix(connection, target);
+                int installed = prefix.installed();
                 boolean committed = false;
-                for (int index = 0; index < target.manifest().scripts().size(); index++) {
+                for (int index = prefix.start(); index < target.manifest().scripts().size(); index++) {
                     ScriptBO script = target.manifest().scripts().get(index);
                     path = script.path();
                     Instant start = clock.instant();
                     if (committed) {
                         configureAndLock(connection, target);
-                        installed = installedPrefix(connection, target);
+                        InstalledPrefixBO current = installedPrefix(connection, target);
+                        if (current.start() != prefix.start()) {
+                            throw new IllegalStateException("MANIFEST_PREFIX_MISMATCH");
+                        }
+                        installed = current.installed();
                         committed = false;
                     }
                     StatusEnum status = StatusEnum.SKIPPED;
                     if (index >= installed) {
                         executePostgreSqlScript(connection, scripts.get(script));
+                        if (index == prefix.start()) {
+                            // Older baselines may create their own history; business-only baselines need the runner's table.
+                            executePostgreSqlScript(connection, scripts.get(HISTORY_TABLE));
+                        }
                         insertHistory(connection, target, script, elapsed(start));
                         try {
                             connection.commit();
@@ -192,7 +206,7 @@ public final class EgonColaPostgreDdlRunner {
         }
     }
 
-    private int installedPrefix(Connection connection, EgonColaDdlTargetBO target) throws SQLException {
+    private InstalledPrefixBO installedPrefix(Connection connection, EgonColaDdlTargetBO target) throws SQLException {
         List<String> relations = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement("SELECT c.relname FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace " + "WHERE n.nspname=? AND c.relkind IN ('r','p','v','m','S','f') ORDER BY c.relname")) {
             statement.setString(1, target.schema());
@@ -206,12 +220,18 @@ public final class EgonColaPostgreDdlRunner {
             if (!relations.isEmpty()) {
                 throw new IllegalStateException("REBUILD_REQUIRED");
             }
-            return 0;
+            int start = target.manifest().startingIndex(null);
+            return new InstalledPrefixBO(start, start);
         }
         int count = 0;
+        int start = -1;
         try (PreparedStatement statement = connection.prepareStatement("SELECT script,type,version,checksum,route_fingerprint,tenant_id FROM " + target.getDdlGenerator().getDdlHistory() + " ORDER BY version")) {
             try (ResultSet rows = statement.executeQuery()) {
                 while (rows.next()) {
+                    if (start == -1) {
+                        start = target.manifest().startingIndex(rows.getString(3));
+                        count = start;
+                    }
                     if (count >= target.manifest().scripts().size()) {
                         throw new IllegalStateException("MANIFEST_PREFIX_MISMATCH");
                     }
@@ -229,11 +249,13 @@ public final class EgonColaPostgreDdlRunner {
                 }
             }
         }
-        if (count == 0) {
+        if (start == -1) {
             throw new IllegalStateException("REBUILD_REQUIRED: unmanaged empty ddl_history");
         }
-        return count;
+        return new InstalledPrefixBO(start, count);
     }
+
+    private record InstalledPrefixBO(int start, int installed) { }
 
     private void insertHistory(Connection connection, EgonColaDdlTargetBO target, ScriptBO script, Duration elapsed) throws SQLException {
         try (PreparedStatement statement = connection.prepareStatement("INSERT INTO " + target.getDdlGenerator().getDdlHistory() + " (tenant_id,script,type,version,checksum,installed_on,execution_ms,route_fingerprint) " + "VALUES (0,?,?,?,?,CURRENT_TIMESTAMP,?,?)")) {
@@ -255,7 +277,7 @@ public final class EgonColaPostgreDdlRunner {
             try {
                 validatePrimary(confirmation, target);
                 configureAndLock(confirmation, target);
-                return installedPrefix(confirmation, target) > index;
+                return installedPrefix(confirmation, target).installed() > index;
             } finally {
                 confirmation.rollback();
             }

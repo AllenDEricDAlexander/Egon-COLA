@@ -45,7 +45,6 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Clock;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -211,7 +210,10 @@ class OAuthResourcePersistenceContractTest {
         OAuthStringListJsonbTypeHandler handler = new OAuthStringListJsonbTypeHandler();
         PreparedStatement statement = mock(PreparedStatement.class);
         handler.setNonNullParameter(statement, 2, List.of("orders:read", "orders:write"), JdbcType.OTHER);
-        verify(statement).setObject(2, "[\"orders:read\",\"orders:write\"]", Types.OTHER);
+        var json = org.mockito.ArgumentCaptor.forClass(org.postgresql.util.PGobject.class);
+        verify(statement).setObject(org.mockito.ArgumentMatchers.eq(2), json.capture());
+        assertEquals("jsonb", json.getValue().getType());
+        assertEquals("[\"orders:read\",\"orders:write\"]", json.getValue().getValue());
 
         ResultSet resultSet = mock(ResultSet.class);
         Mockito.when(resultSet.getString("allowed_scopes"))
@@ -445,7 +447,7 @@ class OAuthResourcePersistenceContractTest {
         Path path = repositoryRoot().resolve(ADMIN_PREFIX + "resources/" + resource);
         assertTrue(Files.isRegularFile(path), "Missing mapper XML " + resource);
         String xml = Files.readString(path).toLowerCase();
-        assertTrue(xml.contains("from " + table), "Wrong table mapping: " + resource);
+        assertTrue(xml.contains("from tianquan_oauth." + table), "Wrong table mapping: " + resource);
         assertTrue(xml.contains("tenant_id = #{tenantid}"), "Missing trusted tenant predicate: " + resource);
         assertTrue(xml.contains("deleted_at is null"), "Missing active-row predicate: " + resource);
         assertTrue(xml.contains("version = #{expectedversion}"), "Missing optimistic update: " + resource);

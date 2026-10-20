@@ -23,7 +23,7 @@ import java.time.Instant;
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_identity_user", autoResultMap = true)
+@TableName(value = "oauth_identity_user", schema = "tianquan_oauth", autoResultMap = true)
 public class IdentityUserPO extends EgonModel<IdentityUserPO> {
 
     @TableField(value = "identity_sub", updateStrategy = FieldStrategy.NEVER)

@@ -120,22 +120,5 @@ public interface GatewayCallEventSummaryDAO extends EgonColaMapper<GatewayCallEv
      */
     List<Map<String, Object>> selectReleaseTotals(@Param("env") String env, @Param("namespace") String namespace);
 
-    /**
-     * 中文说明：软删除已过期的事件投影，替代旧物理 {@code DELETE FROM gateway_call_event_summary WHERE expires_at < ?}；
-     * 守护边界禁止硬删，故改为盖写 {@code deleted_at}、{@code update_user_id}、{@code update_time} 并递增 {@code version}。
-     * English summary: Soft-deletes expired projections, replacing the legacy physical
-     * {@code DELETE FROM gateway_call_event_summary WHERE expires_at < ?}; the guarded boundary forbids hard deletes, so
-     * {@code deleted_at}, {@code update_user_id} and {@code update_time} are stamped and {@code version} is bumped.
-     *
-     * 用法 / Usage: 由保留期回收任务调用，租户与操作者取自 MDC 守卫上下文而非业务入参；重复执行只命中尚未软删的行。
-     * Invoked by the retention reaper with tenant and operator read from the MDC guard context rather than business
-     * arguments; re-running only matches rows that are still active.
-     * @param now 判定过期的时间基准，同时写入 {@code update_time}；the expiry instant, also written as {@code update_time}.
-     * @param tenantId 当前租户标识；the current tenant identifier.
-     * @param operatorId 当前操作者标识；the current operator identifier.
-     * @return 本次被软删除的行数；the number of rows soft-deleted.
-     */
-    int softDeleteExpired(@Param("now") Instant now,
-                          @Param("tenantId") Long tenantId,
-                          @Param("operatorId") String operatorId);
+
 }

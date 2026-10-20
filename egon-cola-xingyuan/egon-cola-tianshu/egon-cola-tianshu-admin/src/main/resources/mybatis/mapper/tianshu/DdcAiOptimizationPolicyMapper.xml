@@ -48,7 +48,7 @@
         SELECT <include refid="PolicyColumns"/>, v.version_no AS last_evaluated_version_no
         FROM ddc_ai_optimization_policy p
         LEFT JOIN ddc_ai_version v ON v.tenant_id = p.tenant_id AND v.resource_id = p.resource_id
-            AND v.id = p.last_evaluated_version_id
+            AND v.id = p.last_evaluated_version_id AND v.deleted_at IS NULL
     </sql>
 
     <select id="selectActiveById" resultMap="DdcAiOptimizationPolicyPOResultMap">
@@ -82,7 +82,7 @@
           AND p.state IN ('ARMED', 'AWAITING_PUBLISH') AND p.active_run_id IS NULL
         ORDER BY p.last_evaluated_at ASC NULLS FIRST, p.id
         LIMIT #{limit}
-        FOR UPDATE SKIP LOCKED
+        FOR UPDATE
     </select>
 
     <select id="selectJudgeEnabledResourceIds" resultType="java.lang.Long">

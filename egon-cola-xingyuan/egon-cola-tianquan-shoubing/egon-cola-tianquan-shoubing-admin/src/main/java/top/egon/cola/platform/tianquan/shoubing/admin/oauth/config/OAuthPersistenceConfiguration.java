@@ -11,8 +11,11 @@ import top.egon.cola.component.outbox.migration.OutboxManagedDdlInitializer;
 
 import java.time.Clock;
 import javax.sql.DataSource;
+import org.mybatis.spring.annotation.MapperScan;
+import top.egon.cola.platform.tianquan.shoubing.admin.IdpAdminApplication;
 
 @Configuration(proxyBeanMethods = false)
+@MapperScan(basePackageClasses = IdpAdminApplication.class, annotationClass = org.apache.ibatis.annotations.Mapper.class)
 public class OAuthPersistenceConfiguration {
 
     @Bean("egonColaMybatisPlusClock")

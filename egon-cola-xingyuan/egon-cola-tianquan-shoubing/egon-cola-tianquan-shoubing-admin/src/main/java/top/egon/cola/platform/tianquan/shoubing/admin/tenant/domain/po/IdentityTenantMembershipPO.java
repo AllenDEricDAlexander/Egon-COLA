@@ -22,7 +22,7 @@ import top.egon.cola.component.common.mybatis.model.EgonModel;
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_identity_membership", autoResultMap = true)
+@TableName(value = "oauth_identity_membership", schema = "tianquan_oauth", autoResultMap = true)
 public class IdentityTenantMembershipPO extends EgonModel<IdentityTenantMembershipPO> {
 
     @TableField(value = "membership_id", updateStrategy = FieldStrategy.NEVER)

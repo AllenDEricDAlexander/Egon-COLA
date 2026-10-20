@@ -141,6 +141,53 @@ class IdpSecurityObservationFilterTest {
     void cleanup() { SecurityContextHolder.clearContext(); org.slf4j.MDC.clear(); validator.close(); }
 
     @Test
+    void concurrentStrictHandoffsWaitForAnInFlightFrameInsteadOfReportingDeliveryUnavailable() throws Exception {
+        var audit = new OAuthAuditProperties(STREAM, temporary.resolve("spool"), 1_048_576,
+                temporary.resolve("audit.key"));
+        var readiness = new top.egon.cola.platform.tianquan.shoubing.starter.observability.IdpSecurityObservationReadinessComponent(
+                audit, validator);
+        var publishing = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var secondStarted = new java.util.concurrent.CountDownLatch(1);
+        var calls = new java.util.concurrent.atomic.AtomicInteger();
+        when(stream.add(any(StreamAddArgs.class))).thenAnswer(call -> {
+            if (calls.incrementAndGet() == 1) {
+                publishing.countDown();
+                if (!release.await(5, java.util.concurrent.TimeUnit.SECONDS)) {
+                    throw new IllegalStateException("AUDIT_PUBLISH_TEST_TIMEOUT");
+                }
+            }
+            StreamAddParams<String, String> fields = call.getArgument(0);
+            events.add(Map.copyOf(fields.getEntries()));
+            return new StreamMessageId(events.size(), 1);
+        });
+        try (var lease = readiness.acquireSpoolLease();
+             var pool = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+            var ready = readiness.readiness(lease);
+            var receiver = new IdpObservedVerificationComponent(producer, eventConverter, usageProperties,
+                    IdpSecurityMetricsRecorder.NOOP, clock, validator, RESOURCE, ready);
+            var first = pool.submit(receiver::authenticationFailure);
+            assertThat(publishing.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            assertThat(ready.getAsBoolean()).isFalse();
+            var second = pool.submit(() -> {
+                secondStarted.countDown();
+                return receiver.authenticationFailure();
+            });
+            assertThat(secondStarted.await(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            try {
+                org.assertj.core.api.Assertions.assertThatThrownBy(() -> second.get(100,
+                        java.util.concurrent.TimeUnit.MILLISECONDS)).isInstanceOf(java.util.concurrent.TimeoutException.class);
+            } finally {
+                release.countDown();
+            }
+            assertThat(first.get(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            assertThat(second.get(5, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            assertThat(events).hasSize(2);
+            assertThat(ready.getAsBoolean()).isTrue();
+        }
+    }
+
+    @Test
     void asyncDenialCallbackSurvivesInitialDispatchAndIsRemovedAtCompletion() throws Exception {
         var request = new MockHttpServletRequest("GET", "/user/orders");
         request.setAsyncSupported(true);

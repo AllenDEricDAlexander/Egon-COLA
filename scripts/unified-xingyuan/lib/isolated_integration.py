@@ -533,9 +533,11 @@ def original_nginx_facts(manifest):
     for line in inventory.stdout.splitlines():
         if not line.strip(): continue
         fields=line.strip().split(None,7)
-        if len(fields)!=8 or not fields[0].isdigit() or not fields[1].isdigit():
+        if len(fields)!=8:
             sys.exit(6)
         if Path(fields[7]).name!='nginx': continue
+        if not fields[0].isdigit() or not fields[1].isdigit():
+            sys.exit(6)
         pid,uid=int(fields[0]),int(fields[1])
         identity=short_process_fingerprint(pid,manifest['deadlines']['httpSeconds'])
         if identity is None: sys.exit(6)
@@ -656,6 +658,14 @@ def original_redis_facts(manifest):
         except (OSError,subprocess.TimeoutExpired):
             sys.exit(6)
         if result.returncode or result.stderr.strip() or len(result.stdout)>128*1024: sys.exit(6)
+        if arguments in (('INFO','server'),('INFO','keyspace')) and result.stdout.startswith(b'# '):
+            try:
+                info=result.stdout.decode('utf-8')
+            except UnicodeError:
+                sys.exit(6)
+            if not info.splitlines() or info.splitlines()[0]!='# '+arguments[1].capitalize() or '\0' in info:
+                sys.exit(6)
+            return info
         return decode_task_json(result.stdout)
     def server_reference():
         info=query(0,'INFO','server')
@@ -686,11 +696,11 @@ for _,key in ipairs(page[2]) do
     if kind~='string' and not cardinality[kind] then return redis.error_reply('snapshot unsupported type') end
     if cardinality[kind] and redis.call(cardinality[kind],key)>4096 then return redis.error_reply('snapshot collection limit') end
     local memory=redis.call('MEMORY','USAGE',key,'SAMPLES',0)
-    if not memory or memory>1048576 then return redis.error_reply('snapshot memory limit') end
+    if not memory or memory>4194304 then return redis.error_reply('snapshot memory limit') end
     local value=redis.call('DUMP',key)
     if value then
       bytes=bytes+#value
-      if #value>1048576 or bytes>33554432 then return redis.error_reply('snapshot value limit') end
+      if #value>4194304 or bytes>33554432 then return redis.error_reply('snapshot value limit') end
       table.insert(rows,{redis.sha1hex(key),kind,redis.sha1hex(value),expiry,#value})
     end
   end
@@ -708,7 +718,7 @@ return {page[1],rows}"""
             if (not isinstance(page,list) or len(page)!=2 or not isinstance(page[0],str) or not re.fullmatch(r'0|[1-9][0-9]{0,19}',page[0])
                     or not isinstance(page[1],list) or len(page[1])>512): sys.exit(6)
             for row in page[1]:
-                if (not isinstance(row,list) or len(row)!=5 or type(row[4]) is not int or not 0<row[4]<=1048576
+                if (not isinstance(row,list) or len(row)!=5 or type(row[4]) is not int or not 0<row[4]<=4194304
                         or not isinstance(row[0],str)): sys.exit(6)
                 value={'type':row[1],'valueSha1':row[2],'expiresAtMs':row[3]}
                 if row[0] in keys and keys[row[0]]!=value: sys.exit(3)
@@ -919,7 +929,7 @@ def prepare(argv):
     names = [entry['name'] for entry in manifest['databases']]
     query = """SELECT coalesce(json_agg(json_build_object(
         'databaseName', datname, 'oid', oid::bigint, 'databaseOwner', pg_get_userbyid(datdba),
-        'ownerComment', obj_description(oid, 'pg_database'))), '[]'::json)::text
+        'ownerComment', shobj_description(oid, 'pg_database'))), '[]'::json)::text
         FROM pg_database WHERE datname IN (""" + ','.join("'" + name + "'" for name in names) + ');'
 
     def database_facts():
@@ -987,6 +997,7 @@ def prepare(argv):
         if prior_task_facts: reject(9)
         redis_original={'schemaVersion':1,'runId':manifest['runId'],'manifestSha256':digest,'status':'CAPTURED','snapshot':current_redis}
         publish_task_json(redis_file,root,redis_original)
+    recover_receipts=set()
     for target in manifest['databases']:
         receipt_file = root / ('evidence/db-' + target['role'] + '.json')
         fact = existing.get(target['name'])
@@ -996,6 +1007,11 @@ def prepare(argv):
             continue
         if fact['databaseOwner'] != pg_user or fact['ownerComment'] != owner_marker:
             reject(3)
+        if not receipt_file.exists():
+            if not resume or receipt_file.is_symlink():
+                reject(3)
+            recover_receipts.add(target['name'])
+            continue
         receipt = decode(protected(receipt_file))
         expected = dict(fact, role=target['role'], runId=manifest['runId'], manifestSha256=digest)
         if receipt != expected:
@@ -1067,6 +1083,8 @@ def prepare(argv):
             fact = database_facts().get(target['name'])
             if fact is None or fact['databaseOwner'] != pg_user or fact['ownerComment'] != owner_marker:
                 reject(9)
+        elif target['name'] in recover_receipts and database_facts().get(target['name']) != fact:
+            reject(3)
         receipt = dict(fact, role=target['role'], runId=manifest['runId'], manifestSha256=digest)
         publish_json(root / ('evidence/db-' + target['role'] + '.json'), receipt)
         receipts.append(receipt)
@@ -2948,7 +2966,7 @@ def prepare_frontend_profiles(manifest, digest):
         sys.exit(3)
     roles = {'portal-web': ('edge-ui', '/', None, None),
              'shoubing-web': ('edge-shoubing', '/apps/tianquan-shoubing/', 'tianquan-shoubing', '/overview'),
-             'jianshen-web': ('edge-jianshen', '/apps/tianquan-jianshen/', 'tianquan-jianshen', '/roles'),
+             'jianshen-web': ('edge-jianshen', '/apps/tianquan-jianshen/', 'tianquan-jianshen', '/iam/roles'),
              'yuheng-web': ('edge-yuheng', '/apps/yuheng/', 'yuheng', '/dashboard'),
              'tianshu-web': ('edge-tianshu', '/apps/tianshu/', 'tianshu', '/registry')}
     declared = {item['id']: item for item in manifest['processes']}
@@ -2968,6 +2986,9 @@ def prepare_frontend_profiles(manifest, digest):
         sys.exit(4)
     host_version = host_versions[0]
     sources[str(host_contract)] = task_artifact_sha256(host_contract)
+    sandbox_source = host_contract.parent.parent.parent / 'public/wujie-empty.html'
+    sources[str(sandbox_source)] = task_artifact_sha256(sandbox_source)
+    sandbox_bytes = sandbox_source.read_bytes()
     origin = manifest['publicOrigin']
     for role, (alias, mount, platform, landing) in roles.items():
         process, artifact = declared[role], manifest['artifacts'][role]
@@ -3029,6 +3050,7 @@ def prepare_frontend_profiles(manifest, digest):
     public_manifest = root / 'portal-public/portal-manifest/isolated.json'
     public_bytes = (json.dumps(children, ensure_ascii=True, sort_keys=True, separators=(',', ':')) + '\n').encode('utf-8')
     publish_private_file(public_manifest, root, public_bytes)
+    publish_private_file(root / 'portal-public/wujie-empty.html', root, sandbox_bytes)
     receipt = {'schemaVersion': 1, 'runId': manifest['runId'], 'manifestSha256': digest,
                'registrySha256': hashlib.sha256(registry_bytes).hexdigest(), 'profiles': profiles, 'sourceFiles': sources,
                'portalManifest': {'path': str(public_manifest), 'sha256': hashlib.sha256(public_bytes).hexdigest()}}
@@ -3725,7 +3747,8 @@ def launch_owned_runtime(manifest, digest, role, truststore, manifest_file=None)
         password = task_credential(Path(manifest['secretFiles']['tls-keystore-password']), root / 'secrets')
         def quote(value):
             return '"' + value.replace('\\', '\\\\').replace('"', '\\"').replace('\n', '\\n').replace('\r', '\\r').replace('\t', '\\t') + '"'
-        options = ['-Duser.timezone=UTC', '-Djavax.net.ssl.trustStore=' + str(truststore),
+        options = ['-Xms64m', '-Xmx768m', '-XX:MaxDirectMemorySize=256m',
+                   '-Duser.timezone=UTC', '-Djavax.net.ssl.trustStore=' + str(truststore),
                    '-Djavax.net.ssl.trustStoreType=PKCS12', '-Djavax.net.ssl.trustStorePassword=' + password]
         args_file = root / 'profiles' / (role + '.jvm.args')
         publish_private_file(args_file, root, ('\n'.join(quote(value) for value in options) + '\n').encode('utf-8'))
@@ -3799,7 +3822,7 @@ def wait_owned_https(manifest, record, url, metadata_issuer=None, jwks=False, re
     context = ssl.create_default_context(cafile=str(ca))
     from urllib.parse import urlsplit
     target = urlsplit(url)
-    allowed_ports = {value['port'] for value in manifest['processes']}
+    allowed_ports = {port for value in manifest['processes'] for port in (value['port'], runtime_management_port(value))}
     if target.scheme != 'https' or target.hostname != '127.0.0.1' or target.port not in allowed_ports:
         sys.exit(3)
     if target.port != 28443:

@@ -22,7 +22,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.slf4j.MDC;
-import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.yuheng.admin.observability.converter.GatewayConsumeFailurePersistenceConverter;
 import top.egon.cola.component.yuheng.admin.observability.dao.GatewayAuditLogDAO;
 import top.egon.cola.component.yuheng.admin.observability.dao.GatewayCallEventSummaryDAO;
@@ -72,9 +71,7 @@ class GatewayKafkaMpProjectionTest {
     /** 中文说明：计划的受信租户。 English summary: the plan's trusted tenant. */
     private static final String TRUSTED_TENANT = "9001";
 
-    /** 中文说明：保留期回收软删时盖写的操作者，取自边界的 MDC 用户提供者。 */
-    private static final String TRUSTED_OPERATOR = "operator-1";
-
+    private GatewayCallEventSummaryPersistenceRepository summaryRepository;
     private GatewayCallEventSummaryDAO summaryDAO;
     private GatewayCallMetricMinuteDAO metricDAO;
     private GatewayAuditLogDAO auditDAO;
@@ -87,9 +84,7 @@ class GatewayKafkaMpProjectionTest {
         metricDAO = mock(GatewayCallMetricMinuteDAO.class);
         auditDAO = mock(GatewayAuditLogDAO.class);
         consumeFailureDAO = mock(GatewayConsumeFailureDAO.class);
-        EgonColaUserIdProvider userIdProvider = mock(EgonColaUserIdProvider.class);
-        when(userIdProvider.currentUserId()).thenReturn(TRUSTED_OPERATOR);
-        GatewayCallEventSummaryPersistenceRepository summaryRepository =
+        summaryRepository =
                 mock(GatewayCallEventSummaryPersistenceRepository.class);
         GatewayCallMetricMinutePersistenceRepository metricRepository =
                 mock(GatewayCallMetricMinutePersistenceRepository.class);
@@ -108,8 +103,7 @@ class GatewayKafkaMpProjectionTest {
                 metricRepository,
                 auditRepository,
                 consumeFailureRepository,
-                new GatewayConsumeFailurePersistenceConverter(),
-                userIdProvider
+                new GatewayConsumeFailurePersistenceConverter()
         );
     }
 
@@ -178,11 +172,21 @@ class GatewayKafkaMpProjectionTest {
     @DisplayName("到期回收改走受守卫软删并携带可信租户与操作者")
     void retentionSweepBecomesGuardedSoftDelete() {
         Instant now = Instant.parse("2026-09-22T16:30:00Z");
-        when(summaryDAO.softDeleteExpired(now, 9001L, TRUSTED_OPERATOR)).thenReturn(7);
+        GatewayCallEventSummaryPO first = new GatewayCallEventSummaryPO();
+        first.setId(1L);
+        first.setVersion(7L);
+        GatewayCallEventSummaryPO stale = new GatewayCallEventSummaryPO();
+        stale.setId(2L);
+        stale.setVersion(8L);
+        when(summaryRepository.list(org.mockito.ArgumentMatchers.any(com.baomidou.mybatisplus.core.conditions.Wrapper.class)))
+                .thenReturn(List.of(first, stale));
+        when(summaryRepository.removeById(first)).thenReturn(true);
+        when(summaryRepository.removeById(stale)).thenReturn(false);
 
-        assertThat(projection.deleteExpired(now)).isEqualTo(7);
+        assertThat(projection.deleteExpired(now)).isEqualTo(1);
 
-        verify(summaryDAO).softDeleteExpired(now, 9001L, TRUSTED_OPERATOR);
+        verify(summaryRepository).removeById(first);
+        verify(summaryRepository).removeById(stale);
     }
 
     @Test

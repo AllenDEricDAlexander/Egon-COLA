@@ -7,13 +7,13 @@ import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
 import org.apache.ibatis.type.MappedJdbcTypes;
 import org.apache.ibatis.type.MappedTypes;
+import org.postgresql.util.PGobject;
 
 import java.nio.charset.StandardCharsets;
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 
 @MappedTypes(JsonNode.class)
 @MappedJdbcTypes(JdbcType.OTHER)
@@ -28,7 +28,10 @@ public final class IdentityTenantSettingsJsonbTypeHandler extends BaseTypeHandle
             JsonNode value,
             JdbcType jdbcType) throws SQLException {
         requireObject(value);
-        statement.setObject(index, value.toString(), Types.OTHER);
+        PGobject json = new PGobject();
+        json.setType("jsonb");
+        json.setValue(value.toString());
+        statement.setObject(index, json);
     }
 
     @Override

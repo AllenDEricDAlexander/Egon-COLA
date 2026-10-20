@@ -23,6 +23,7 @@ import java.lang.reflect.Method;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class McpGatewayEngineTaskStoreConfigurationTest {
@@ -38,6 +39,10 @@ class McpGatewayEngineTaskStoreConfigurationTest {
         );
 
         assertNull(factory.getAnnotation(ConditionalOnBean.class));
+        assertTrue(java.util.List.of(factory.getAnnotation(org.springframework.context.annotation.Bean.class).name())
+                .containsAll(java.util.List.of("gatewayMcpRuntimeTaskStore", "mcpRuntimeTaskStore")));
+        assertNull(top.egon.cola.component.yuheng.mcp.engine.mcp.adapter.MpMcpRuntimeTaskStore.class
+                .getAnnotation(org.springframework.stereotype.Component.class));
     }
 
     @Test
@@ -72,7 +77,7 @@ class McpGatewayEngineTaskStoreConfigurationTest {
             assertTrue(context.containsBeanDefinition("mcpPersistenceConfiguration"));
             assertTrue(context.containsBeanDefinition("mcpTaskPersistenceRepository"));
             assertTrue(context.containsBeanDefinition("mcpTaskPersistenceConverter"));
-            assertTrue(context.containsBeanDefinition("mcpRuntimeTaskStore"));
+            assertFalse(context.containsBeanDefinition("mcpRuntimeTaskStore"));
             assertTrue(context.containsBeanDefinition("mcpApprovalPersistenceRepository"));
             assertTrue(context.containsBeanDefinition("mcpApprovalPersistenceConverter"));
             assertTrue(context.containsBeanDefinition("mcpApprovalAdapter"));

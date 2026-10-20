@@ -24,32 +24,32 @@
 
     <select id="selectActiveById" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
     <select id="selectActiveByIds" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
         ORDER BY update_time DESC, identity_sub ASC, identity_tenant_id ASC
     </select>
     <select id="selectByExternalKey" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{directoryPartitionId}
           AND membership_id = #{membershipId} AND deleted_at IS NULL
     </select>
     <select id="selectByTenantAndIdentitySub" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{directoryPartitionId}
           AND identity_tenant_id = #{identityTenantId}
           AND identity_sub = #{identitySub} AND deleted_at IS NULL
     </select>
     <select id="selectForUpdate" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{directoryPartitionId}
           AND identity_tenant_id = #{identityTenantId}
           AND identity_sub = #{identitySub} AND deleted_at IS NULL
@@ -57,20 +57,20 @@
     </select>
     <select id="selectByTenant" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{directoryPartitionId}
           AND identity_tenant_id = #{identityTenantId} AND deleted_at IS NULL
         ORDER BY update_time DESC, identity_sub ASC
     </select>
     <select id="selectByIdentitySub" resultMap="IdentityTenantMembershipPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_membership
+        FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{directoryPartitionId}
           AND identity_sub = #{identitySub} AND deleted_at IS NULL
         ORDER BY update_time DESC, identity_tenant_id ASC
     </select>
     <update id="updateExpectedVersion">
-        UPDATE oauth_identity_membership
+        UPDATE tianquan_oauth.oauth_identity_membership
         SET status = #{po.status},
             version = #{po.version},
             update_user_id = #{po.updateUserId},
@@ -84,7 +84,7 @@
           AND deleted_at IS NULL
     </update>
     <update id="deleteVersionedById">
-        UPDATE oauth_identity_membership
+        UPDATE tianquan_oauth.oauth_identity_membership
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{et.updateUserId},

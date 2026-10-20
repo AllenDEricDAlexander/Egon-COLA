@@ -129,13 +129,32 @@ public final class RpcReferenceDefinitionResolver {
         String group = effectiveGroup(reference, descriptor.group());
         String version = effectiveVersion(reference, descriptor.version());
         return new RpcProviderQuery(
-                reference.bizCode(),
-                reference.appCode(),
+                directIdentity(reference.bizCode(), "bizCode"),
+                directIdentity(reference.appCode(), "appCode"),
                 env,
                 descriptor.serviceName(),
                 group,
                 version,
                 "grpc");
+    }
+
+    private String directIdentity(String value, String name) {
+        if (!value.contains("${")) {
+            return value;
+        }
+        if (applicationContext == null) {
+            throw invalid("DIRECT RPC reference " + name + " placeholder requires an application context");
+        }
+        String resolved;
+        try {
+            resolved = applicationContext.getEnvironment().resolveRequiredPlaceholders(value);
+        } catch (IllegalArgumentException exception) {
+            throw invalid("DIRECT RPC reference " + name + " placeholder is unresolved", exception);
+        }
+        if (blank(resolved) || resolved.contains("${")) {
+            throw invalid("DIRECT RPC reference " + name + " must resolve to a non-blank identity");
+        }
+        return resolved;
     }
 
     private String effectiveGroup(

@@ -51,7 +51,8 @@ class DdcConfigDataLocationResolverTest {
                         "egon.cola.component.tianshu.app-code", "order-service",
                         "egon.cola.component.tianshu.tenant-id", 101L,
                         "egon.cola.component.tianshu.rpc.target", "localhost:19080",
-                        "egon.cola.component.tianshu.rpc.auth.enabled", false
+                        "egon.cola.component.tianshu.rpc.auth.enabled", false,
+                        "egon.cola.component.id.machine-id", 0L
                 )
         );
 

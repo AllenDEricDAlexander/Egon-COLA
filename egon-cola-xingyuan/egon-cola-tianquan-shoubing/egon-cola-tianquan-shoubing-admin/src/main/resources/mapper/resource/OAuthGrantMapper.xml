@@ -27,7 +27,7 @@
 
     <select id="selectGrant" resultMap="OAuthGrantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_grant
+        FROM tianquan_oauth.oauth_grant
         WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk}
           AND resource_server_id = #{resourceServerId} AND grant_type = #{grantType}
           AND deleted_at IS NULL
@@ -35,7 +35,7 @@
 
     <select id="selectGrantForUpdate" resultMap="OAuthGrantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_grant
+        FROM tianquan_oauth.oauth_grant
         WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk}
           AND resource_server_id = #{resourceServerId} AND grant_type = #{grantType}
           AND deleted_at IS NULL
@@ -44,7 +44,7 @@
 
     <select id="listByClient" resultMap="OAuthGrantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_grant
+        FROM tianquan_oauth.oauth_grant
         WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk} AND deleted_at IS NULL
         ORDER BY resource_server_id ASC, grant_type ASC, id ASC
         LIMIT #{limit}
@@ -52,13 +52,13 @@
 
     <select id="selectActiveById" resultMap="OAuthGrantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_grant
+        FROM tianquan_oauth.oauth_grant
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthGrantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_grant
+        FROM tianquan_oauth.oauth_grant
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -67,7 +67,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_grant
+        UPDATE tianquan_oauth.oauth_grant
         SET allowed_scopes = #{po.allowedScopes,
                 typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler},
             status = #{po.status},
@@ -85,7 +85,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_grant
+        UPDATE tianquan_oauth.oauth_grant
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{po.updateUserId},

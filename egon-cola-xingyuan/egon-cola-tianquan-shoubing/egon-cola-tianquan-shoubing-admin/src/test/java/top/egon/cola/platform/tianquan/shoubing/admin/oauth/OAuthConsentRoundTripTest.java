@@ -226,8 +226,8 @@ class OAuthConsentRoundTripTest {
                 fixture.authorizations.values().iterator().next().getId()).orElseThrow();
         loaded.setTokens(fixture.tokens.values().stream().filter(row -> row.getAuthorizationPk().equals(loaded.getId()))
                 .map(row -> fixture.tokenConverter.toTarget(realm, fixture.cipher, fixture.mapper, row.getTokenDigest(), row)).toList());
-        var nativeLoaded = context.getBean("SasAuthorizationConverterImpl", SasAuthorizationConverter.class).toTarget(
-                loaded, context.getBean("SasRegisteredClientConverterImpl", SasRegisteredClientConverter.class).toTarget(fixture.client(realm)),
+        var nativeLoaded = context.getBean("sasAuthorizationConverterImpl", SasAuthorizationConverter.class).toTarget(
+                loaded, context.getBean("sasRegisteredClientConverterImpl", SasRegisteredClientConverter.class).toTarget(fixture.client(realm)),
                 fixture.mapper, realm.getIssuer());
         assertTrue(nativeLoaded.getAccessToken().isActive(), "Reloaded native AT metadata must retain Instant nbf");
         assertFalse(nativeLoaded.getAccessToken().getClaims().containsKey("_token_use"));
@@ -877,6 +877,9 @@ class OAuthConsentRoundTripTest {
     @ComponentScan(basePackages = "top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller",
             useDefaultFilters = false, includeFilters = @ComponentScan.Filter(type = FilterType.REGEX,
                     pattern = "top[.]egon[.]cola[.]platform[.]tianquan[.]shoubing[.]admin[.]oauth[.]controller[.](TenantLoginController|OAuthConsentController)"))
+    @ComponentScan(basePackageClasses = SasConsentConverter.class, useDefaultFilters = false,
+            includeFilters = @ComponentScan.Filter(type = FilterType.ASSIGNABLE_TYPE,
+                    classes = {SasConsentConverter.class, SasAuthorizationConverter.class, SasRegisteredClientConverter.class}))
     static class NativeConfiguration {
         @Bean("fixture") Fixture fixture() throws Exception { return new Fixture(); }
         @Bean("jacksonObjectMapper") ObjectMapper mapper(Fixture f) { return f.mapper; }
@@ -898,9 +901,6 @@ class OAuthConsentRoundTripTest {
         @Bean("identityFacade") IdentityFacade identities(Fixture f) { return f.identities; }
         @Bean("tokenRevocationService") TokenRevocationService revocations() { return mock(TokenRevocationService.class); }
         @Bean({"idpClock", "egonColaMybatisPlusClock"}) Clock clock(Fixture f) { return f.clock; }
-        @Bean("SasAuthorizationConverterImpl") SasAuthorizationConverter sasAuthorization() { return Mappers.getMapper(SasAuthorizationConverter.class); }
-        @Bean("SasRegisteredClientConverterImpl") SasRegisteredClientConverter sasClient() { return Mappers.getMapper(SasRegisteredClientConverter.class); }
-        @Bean("SasConsentConverterImpl") SasConsentConverter sasConsent() { return Mappers.getMapper(SasConsentConverter.class); }
         @Bean("transactionManager") PlatformTransactionManager transactions(Fixture f) { return new FixtureTransactionManager(f); }
         @Bean("tenantLoginAuthenticationFilter") TenantLoginAuthenticationFilter login(
                 Fixture f, @Qualifier("oauthAuthorizationRequestCache") RequestCache cache,

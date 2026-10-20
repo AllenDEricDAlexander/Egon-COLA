@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { beforeAll, describe, expect, it } from 'vitest'
 import {
@@ -7,9 +7,11 @@ import {
   I18nProvider,
   initI18n,
 } from '@egon-cola/xingyuan-admin-web-shared'
-import { PortalHomePage } from './PortalHomePage'
+import { PORTAL_PLATFORM_ITEMS, PortalHomePage } from './PortalHomePage'
 import type { PlatformKey } from '../manifest/types'
 import type { SummaryAdapters } from '../summary/platformSummaryFacade'
+import { resolveChildUrl } from '../lifecycle/WujieChild'
+import jianshenResources from '../../../egon-cola-tianquan-jianshen/egon-cola-tianquan-jianshen-admin-web/src/app/resourceDefinitions.json'
 
 const renderHome = (
   adapters: SummaryAdapters,
@@ -55,5 +57,21 @@ describe('PortalHomePage', () => {
     expect(await screen.findByText('身份与安全')).toBeInTheDocument()
     expect(screen.queryByText('配置中心')).not.toBeInTheDocument()
     expect(screen.queryByText('API 网关')).not.toBeInTheDocument()
+  })
+
+  it('opens the declared Jianshen role route through both Portal entries', async () => {
+    renderHome({})
+    const roleRoute = jianshenResources.find((resource) => resource.code === 'iam.roles')?.path
+    expect(roleRoute).toBeDefined()
+    const entry = PORTAL_PLATFORM_ITEMS.find((item) => item.key === 'tianquan-jianshen')!
+
+    const standalone = await screen.findByRole('link', { name: '独立打开 权限治理' })
+    const card = standalone.closest('.ant-card') as HTMLElement
+    expect(within(card).getByRole('link', { name: '进入平台' }))
+      .toHaveAttribute('href', `/xingyuan/tianquan-jianshen${roleRoute}`)
+    expect(standalone)
+      .toHaveAttribute('href', `/tianquan-jianshen${roleRoute}`)
+    expect(resolveChildUrl('/apps/tianquan-jianshen/', entry.key, entry.path))
+      .toBe(new URL(`/apps/tianquan-jianshen${roleRoute}`, window.location.href).toString())
   })
 })

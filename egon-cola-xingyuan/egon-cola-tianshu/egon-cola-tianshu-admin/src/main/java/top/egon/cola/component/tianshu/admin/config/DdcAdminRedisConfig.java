@@ -41,6 +41,14 @@ import java.util.Objects;
 @EnableConfigurationProperties(DdcAdminProperties.class)
 public class DdcAdminRedisConfig {
 
+    /** Keeps Common cache on the configuration center's own Redis connection. */
+    @Bean(name = "redissonClient", destroyMethod = "")
+    @ConditionalOnMissingBean(name = "redissonClient")
+    @ConditionalOnProperty(prefix = "egon.cola.component.tianshu.admin.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
+    RedissonClient applicationCacheRedissonClient(@Qualifier("ddcAdminRedissonClient") RedissonClient client) {
+        return client;
+    }
+
     @Bean("ddcAdminRedissonClient")
     @ConditionalOnMissingBean(name = "ddcAdminRedissonClient")
     @ConditionalOnProperty(prefix = "egon.cola.component.tianshu.admin.redis", name = "enabled", havingValue = "true", matchIfMissing = true)
@@ -66,7 +74,7 @@ public class DdcAdminRedisConfig {
         return new DdcRedisRepository(redissonClient, objectMapper);
     }
 
-    @Bean
+    @Bean("ddcNonceStore")
     @ConditionalOnBean(name = "ddcAdminRedissonClient")
     @ConditionalOnMissingBean(DdcNonceStore.class)
     public DdcNonceStore redisDdcNonceStore(
@@ -91,6 +99,7 @@ public class DdcAdminRedisConfig {
     public DdcRegistrationCredentialVerifier ddcRegistrationCredentialVerifier(
             ServiceAccessTokenVerifier serviceTokens,
             DdcAdminProperties properties,
+            @Qualifier("idpStarterProperties")
             IdpStarterProperties idpProperties
     ) {
         DdcAdminProperties.Registration registration =

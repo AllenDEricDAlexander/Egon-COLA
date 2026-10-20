@@ -1,6 +1,5 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service.impl;
 
-import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import java.util.Objects;
 import java.util.Optional;
@@ -44,7 +43,7 @@ public class TenantIssuerServiceImpl implements TenantIssuerService {
     }
 
     @Override
-    public TrustedRealmBO resolveExactIssuer(@NotNull URI issuer) {
+    public TrustedRealmBO resolveExactIssuer(URI issuer) {
         URI requested = Objects.requireNonNull(issuer, "issuer");
         String path = exactIssuerPath(requested);
         IssuerCandidate candidate = candidate(path);

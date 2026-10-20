@@ -15,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 class DdcConfigDataLoaderTest {
 
@@ -67,6 +68,23 @@ class DdcConfigDataLoaderTest {
                             assertThat(source.snapshot().version()).isZero();
                         }
                 );
+    }
+
+    @Test
+    void explicitDeferredOptionalLoadKeepsVersionZeroWithoutCallingTheRemoteFetcher() throws Exception {
+        var fetcher = mock(DdcConfigDataFetcher.class);
+        var deferred = new DdcConfigDataResource(true, 101L, "orders", "test", "default",
+                "order-service", "application.yml", true);
+        ConfigData data = loader.load(context(fetcher), deferred);
+        assertThat(data.getPropertySources()).singleElement().isInstanceOfSatisfying(
+                DdcDynamicPropertySource.class, source -> {
+                    assertThat(source.getPropertyNames()).isEmpty();
+                    assertThat(source.snapshot().version()).isZero();
+                });
+        verifyNoInteractions(fetcher);
+        assertThat(deferred).isNotEqualTo(resource(true));
+        assertThatThrownBy(() -> new DdcConfigDataResource(false, 101L, "orders", "test", "default",
+                "order-service", "application.yml", true)).isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test

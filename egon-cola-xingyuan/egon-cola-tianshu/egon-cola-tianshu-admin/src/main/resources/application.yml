@@ -46,6 +46,8 @@ spring:
   autoconfigure:
     exclude:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  flyway:
+    enabled: false
   config:
     import:
       - classpath:META-INF/egon-cola-tianshu.properties
@@ -53,7 +55,7 @@ spring:
       - optional:file:${UNIFIED_XINGYUAN_RUNTIME_DIR:target/local-unified-xingyuan}/env/tianshu.properties
       - optional:tianshu:application.yml
 mybatis-plus:
-  mapper-locations: classpath*:mybatis/mapper/tianshu/**/*.xml
+  mapper-locations: classpath*:mybatis/mapper/tianshu/**/*.xml,classpath*:mapper/outbox/**/*.xml
 
 egon:
   cola:

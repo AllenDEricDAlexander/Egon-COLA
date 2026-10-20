@@ -5,7 +5,6 @@ import io.grpc.Server;
 import io.grpc.ServerTransportFilter;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.grpc.stub.StreamObserver;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.boot.SpringApplication;
@@ -15,7 +14,6 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.core.env.PropertySource;
-import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import top.egon.cola.component.tianshu.autoconfigure.DdcAutoConfiguration;
 import top.egon.cola.component.tianshu.autoconfigure.DdcRegistryAutoConfiguration;
 import top.egon.cola.component.tianshu.error.DdcClientTransportException;
@@ -27,7 +25,6 @@ import top.egon.cola.component.rpc.tianshu.contract.proto.v1.PullConfigResponse;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcCommonProtoMapper;
 import top.egon.cola.component.rpc.tianshu.mapping.DdcConfigProtoMapper;
 
-import java.time.Duration;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -40,11 +37,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class DdcConfigDataSpringApplicationTest {
-
-    @BeforeAll
-    static void bindTheProcessWideEngine() {
-        SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
-    }
 
     @TempDir
     Path tempDirectory;
@@ -108,6 +100,21 @@ class DdcConfigDataSpringApplicationTest {
                 .isInstanceOf(DdcClientTransportException.class);
     }
 
+    @Test
+    void explicitControlPlaneBootstrapDefersOnlyAnOptionalInitialPull() throws Exception {
+        Path bootstrap = bootstrapFile(1, true);
+        try (ConfigurableApplicationContext context = run(bootstrap,
+                "--egon.cola.component.tianshu.defer-initial-load=true")) {
+            assertThat(context.getBean(SampleProperties.class).getValue()).isEqualTo("bootstrap");
+            assertThat(context.getEnvironment().getPropertySources().get("tianshu:application.yml"))
+                    .isInstanceOfSatisfying(top.egon.cola.component.tianshu.environment.DdcDynamicPropertySource.class,
+                            source -> assertThat(source.snapshot().version()).isZero());
+        }
+        assertThatThrownBy(() -> run(bootstrap, "--egon.cola.component.tianshu.defer-initial-load=true",
+                "--spring.config.import=tianshu:application.yml"))
+                .hasMessageContaining("defer-initial-load requires optional");
+    }
+
     private ConfigurableApplicationContext run(
             Path bootstrap,
             String... extraArguments) {
@@ -142,6 +149,8 @@ class DdcConfigDataSpringApplicationTest {
                 egon:
                   cola:
                     component:
+                      id:
+                        machine-id: 0
                       tianshu:
                         enabled: true
                         tenant-id: 101

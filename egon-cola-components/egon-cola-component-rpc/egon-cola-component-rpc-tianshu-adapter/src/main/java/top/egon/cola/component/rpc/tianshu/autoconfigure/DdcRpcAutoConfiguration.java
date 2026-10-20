@@ -320,6 +320,7 @@ public class DdcRpcAutoConfiguration {
             DdcServiceRegistryClient client,
             DdcProperties properties,
             IdpServiceOAuth2Client serviceClient,
+            @Qualifier("egon.cola.platform.tianquan.shoubing-top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties")
             IdpStarterProperties idpProperties) {
         return new DdcRpcProviderRegistry(
                 client,

@@ -25,14 +25,14 @@
 
     <select id="selectConsent" resultMap="OAuthConsentPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_consent
+        FROM tianquan_oauth.oauth_consent
         WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk} AND subject = #{subject}
           AND deleted_at IS NULL
     </select>
 
     <select id="selectConsentForUpdate" resultMap="OAuthConsentPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_consent
+        FROM tianquan_oauth.oauth_consent
         WHERE tenant_id = #{tenantId} AND client_pk = #{clientPk} AND subject = #{subject}
           AND deleted_at IS NULL
         FOR UPDATE
@@ -40,13 +40,13 @@
 
     <select id="selectActiveById" resultMap="OAuthConsentPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_consent
+        FROM tianquan_oauth.oauth_consent
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthConsentPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_consent
+        FROM tianquan_oauth.oauth_consent
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -55,7 +55,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_consent
+        UPDATE tianquan_oauth.oauth_consent
         SET authorities = #{po.authorities, typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJsonbTypeHandler},
             granted_at = #{po.grantedAt}, status = #{po.status}, version = #{po.version},
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
@@ -64,7 +64,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_consent
+        UPDATE tianquan_oauth.oauth_consent
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{po.id}

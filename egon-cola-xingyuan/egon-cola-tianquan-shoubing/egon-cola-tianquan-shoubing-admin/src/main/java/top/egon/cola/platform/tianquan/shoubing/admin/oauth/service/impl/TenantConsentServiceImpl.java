@@ -34,7 +34,7 @@ public class TenantConsentServiceImpl implements OAuth2AuthorizationConsentServi
     private final OAuthConsentRepository consentRepository;
     @Qualifier("oAuthClientRepository")
     private final OAuthClientRepository clientRepository;
-    @Qualifier("SasConsentConverterImpl")
+    @Qualifier("sasConsentConverterImpl")
     private final SasConsentConverter converter;
     @Qualifier("egonColaMybatisPlusClock")
     private final Clock clock;

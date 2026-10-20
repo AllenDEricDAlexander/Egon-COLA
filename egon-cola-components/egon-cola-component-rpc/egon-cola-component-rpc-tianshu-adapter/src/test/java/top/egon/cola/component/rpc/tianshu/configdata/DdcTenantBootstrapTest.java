@@ -40,6 +40,12 @@ import static org.mockito.Mockito.when;
 
 class DdcTenantBootstrapTest {
 
+    @org.junit.jupiter.api.BeforeAll
+    static void bindTheDirectClientFixtureEngine() {
+        top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator.initialize(
+                0L, java.time.Duration.ofMillis(5));
+    }
+
     private static final String PREFIX = "egon.cola.component.tianshu";
 
     @Test

@@ -39,13 +39,14 @@
     <select id="selectActiveByIds" resultMap="DdcAiDraftNodePOResultMap">
         SELECT <include refid="DraftNodeColumns"/><include refid="ActiveDraftOwner"/>
           AND n.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
-        ORDER BY n.resource_id, n.path COLLATE "C", n.id
+        <!-- The managed path column already has C collation. -->
+        ORDER BY n.resource_id, n.path, n.id
     </select>
 
     <select id="selectTree" resultMap="DdcAiDraftNodePOResultMap">
         SELECT <include refid="DraftNodeColumns"/><include refid="ActiveDraftOwner"/>
           AND n.resource_id = #{resourceId}
-        ORDER BY n.path COLLATE "C", n.id
+        ORDER BY n.path, n.id
     </select>
 
     <select id="selectByResourceIdAndPath" resultMap="DdcAiDraftNodePOResultMap">

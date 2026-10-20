@@ -1,6 +1,8 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
 
+import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -31,6 +33,8 @@ import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseTarg
         matchIfMissing = true
 )
 public class GatewayReleaseReconciler {
+
+    private final GatewayPersistenceContextComponent persistenceContext;
 
     /**
      * 中文说明：保存 releases 对应的状态、依赖或配置值；字段类型为 {@code GatewayReleaseRepository}，由 {@code GatewayReleaseReconciler} 在其生命周期内读取或更新。
@@ -88,13 +92,15 @@ public class GatewayReleaseReconciler {
             ObjectProvider<GatewayReleasePublicationCoordinator>
                     coordinator,
             GatewayDraftJpaRepository drafts,
-            TransactionTemplate transactions) {
+            TransactionTemplate transactions,
+            GatewayPersistenceContextComponent persistenceContext) {
         this(
                 releases,
                 coordinator.getIfAvailable(),
                 drafts,
                 transactions,
-                Clock.systemUTC()
+                Clock.systemUTC(),
+                persistenceContext
         );
     }
 
@@ -114,12 +120,14 @@ public class GatewayReleaseReconciler {
             GatewayReleasePublicationCoordinator coordinator,
             GatewayDraftJpaRepository drafts,
             TransactionTemplate transactions,
-            Clock clock) {
+            Clock clock,
+            GatewayPersistenceContextComponent persistenceContext) {
         this.releases = releases;
         this.coordinator = coordinator;
         this.drafts = drafts;
         this.transactions = transactions;
         this.clock = clock;
+        this.persistenceContext = persistenceContext;
     }
 
     /**
@@ -132,11 +140,14 @@ public class GatewayReleaseReconciler {
             fixedDelayString =
                     "${yuheng.admin.release-reconcile-delay:30000}"
     )
-    public void reconcile() {
-        if (coordinator == null) {
-            return;
-        }
-        releases.recoverable().forEach(this::reconcile);
+    public void reconcile() throws Exception {
+        persistenceContext.call(null, () -> {
+            if (coordinator == null) {
+                return null;
+            }
+            releases.recoverable().forEach(this::reconcile);
+            return null;
+        });
     }
 
     /**
@@ -197,7 +208,7 @@ public class GatewayReleaseReconciler {
                     "gateway_release_reconciler",
                     clock.instant()
             );
-            drafts.flush();
+            drafts.save(draft);
         }
     }
 

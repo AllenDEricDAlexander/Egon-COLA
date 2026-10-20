@@ -22,7 +22,7 @@ public class DdcOutboxConfiguration {
         return new TransactionTemplate(transactionManager);
     }
 
-    @Bean("ddcPublishClock")
+    @Bean({"ddcPublishClock", "egonColaMybatisPlusClock"})
     public Clock ddcPublishClock() {
         return Clock.systemUTC();
     }

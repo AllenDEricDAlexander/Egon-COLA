@@ -178,7 +178,7 @@ public class KnowledgeServiceImpl implements KnowledgeService {
     @Qualifier("knowledgeRepository")
     private final KnowledgeRepository knowledgeRepository;
 
-    @Qualifier("knowledgeRetrievalService")
+    @Qualifier("knowledgeRetrievalServiceImpl")
     private final KnowledgeRetrievalService knowledgeRetrievalService;
 
     @Qualifier(KnowledgeProperties.BEAN_NAME)

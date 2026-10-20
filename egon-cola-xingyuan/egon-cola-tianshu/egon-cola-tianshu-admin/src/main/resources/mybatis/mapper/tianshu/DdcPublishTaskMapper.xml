@@ -50,7 +50,7 @@
     </sql>
 
     <sql id="TaskJoin">FROM ddc_publish_task t LEFT JOIN ddc_config_item ci
-        ON ci.tenant_id = t.tenant_id AND ci.id = t.config_id</sql>
+        ON ci.tenant_id = t.tenant_id AND ci.id = t.config_id AND ci.deleted_at IS NULL</sql>
 
     <select id="selectActiveById" resultMap="DdcPublishTaskPOResultMap">
         SELECT <include refid="Columns"/> <include refid="TaskJoin"/>

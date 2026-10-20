@@ -46,7 +46,7 @@
         SELECT <include refid="FeedbackColumns"/>, v.version_no AS version_no
         FROM ddc_ai_usage_feedback f
         LEFT JOIN ddc_ai_version v ON v.tenant_id = f.tenant_id AND v.resource_id = f.resource_id
-            AND v.id = f.version_id
+            AND v.id = f.version_id AND v.deleted_at IS NULL
     </sql>
 
     <sql id="PageFilter">
@@ -80,7 +80,7 @@
           AND (f.judge_state = 'PENDING' OR (f.judge_state = 'JUDGING' AND f.judge_lease_until &lt; #{now}))
         ORDER BY f.occurred_at, f.id
         LIMIT #{limit}
-        FOR UPDATE SKIP LOCKED
+        FOR UPDATE
     </select>
 
     <select id="selectScoreAggregate"
@@ -116,7 +116,7 @@
         SELECT count(*)
         FROM ddc_ai_usage_feedback f
         LEFT JOIN ddc_ai_version v ON v.tenant_id = f.tenant_id AND v.resource_id = f.resource_id
-            AND v.id = f.version_id
+            AND v.id = f.version_id AND v.deleted_at IS NULL
         <include refid="PageFilter"/>
     </select>
 
@@ -126,18 +126,8 @@
         WHERE f.tenant_id = #{tenantId} AND f.deleted_at IS NULL AND f.occurred_at &lt; #{before}
         ORDER BY f.id
         LIMIT #{limit}
-        FOR UPDATE SKIP LOCKED
+        FOR UPDATE
     </select>
-
-    <update id="softDeleteByIds">
-        UPDATE ddc_ai_usage_feedback
-        SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
-            version = version + 1,
-            update_user_id = #{updateUserId},
-            update_time = #{updateTime}
-        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
-          AND id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
-    </update>
 
     <update id="deleteVersionedById">
         UPDATE ddc_ai_usage_feedback

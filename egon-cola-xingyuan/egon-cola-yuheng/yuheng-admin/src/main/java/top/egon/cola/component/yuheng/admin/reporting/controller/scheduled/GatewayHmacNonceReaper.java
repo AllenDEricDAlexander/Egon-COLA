@@ -1,6 +1,8 @@
 package top.egon.cola.component.yuheng.admin.reporting.controller.scheduled;
 
 
+import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.yuheng.admin.reporting.repository.GatewayHmacNonceRepository;
@@ -15,6 +17,8 @@ import java.time.Clock;
  */
 @Component
 public class GatewayHmacNonceReaper {
+
+    private final GatewayPersistenceContextComponent persistenceContext;
 
     /**
      * 中文说明：保存 nonces 对应的状态、依赖或配置值；字段类型为 {@code GatewayHmacNonceRepository}，由 {@code GatewayHmacNonceReaper} 在其生命周期内读取或更新。
@@ -39,8 +43,10 @@ public class GatewayHmacNonceReaper {
      * 用法 / Usage: 由 Spring 容器、工厂或上层组件调用；/ Call it from the Spring container, a factory, or an enclosing component after validating the supplied dependencies.
      * @param nonces 参数 nonces；parameter nonces。
      */
-    public GatewayHmacNonceReaper(GatewayHmacNonceRepository nonces) {
+    public GatewayHmacNonceReaper(GatewayHmacNonceRepository nonces,
+            GatewayPersistenceContextComponent persistenceContext) {
         this.nonces = nonces;
+        this.persistenceContext = persistenceContext;
     }
 
     /**
@@ -50,7 +56,10 @@ public class GatewayHmacNonceReaper {
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayHmacNonceReaper.reap(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
     @Scheduled(fixedDelayString = "${yuheng.admin.hmac.reap-delay:PT5M}")
-    public void reap() {
-        nonces.deleteExpired(clock.instant());
+    public void reap() throws Exception {
+        persistenceContext.call(null, () -> {
+            nonces.deleteExpired(clock.instant());
+            return null;
+        });
     }
 }

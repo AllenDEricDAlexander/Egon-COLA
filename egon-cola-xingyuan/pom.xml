@@ -68,6 +68,7 @@
         <sqlite.jdbc.version>3.50.3.0</sqlite.jdbc.version>
         <resilience4j.version>2.2.0</resilience4j.version>
         <grpc.version>1.75.0</grpc.version>
+        <guava.version>33.6.0-jre</guava.version>
         <protobuf.version>4.32.0</protobuf.version>
         <protoc.version>4.32.0</protoc.version>
         <protoc-gen-grpc-java.version>1.75.0</protoc-gen-grpc-java.version>
@@ -87,6 +88,11 @@
 
     <dependencyManagement>
         <dependencies>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>${guava.version}</version>
+            </dependency>
             <dependency>
                 <groupId>org.springframework.cloud</groupId>
                 <artifactId>spring-cloud-dependencies</artifactId>

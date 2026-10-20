@@ -27,7 +27,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthTo
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName("oauth_token")
+@TableName(value = "oauth_token", schema = "tianquan_oauth")
 public class OAuthTokenPO extends EgonModel<OAuthTokenPO> {
 
     @TableField(value = "authorization_pk", updateStrategy = FieldStrategy.NEVER)

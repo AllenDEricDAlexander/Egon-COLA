@@ -49,7 +49,6 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -100,13 +99,13 @@ class OAuthRealmPersistenceContractTest {
                 "mapper/oauth/OAuthRealmMapper.xml",
                 "oauth_realm",
                 "top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthRealmMapper",
-                List.of("selectByIssuer", "selectByRealmKey", "selectByRealmKeyForUpdate", "selectDirectory")
+                List.of("selectActiveById", "selectActiveByIds", "selectByIssuer", "selectByRealmKey", "selectByRealmKeyForUpdate", "selectDirectory")
         );
         assertMapperContract(
                 "mapper/oauth/OAuthClientMapper.xml",
                 "oauth_client",
                 "top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthClientMapper",
-                List.of("selectByClientId", "selectByClientIdForUpdate", "selectDirectory")
+                List.of("selectActiveById", "selectActiveByIds", "selectByClientId", "selectByClientIdForUpdate", "selectDirectory")
         );
     }
 
@@ -386,11 +385,14 @@ class OAuthRealmPersistenceContractTest {
     }
 
     @Test
-    void clientJsonbArraysBindTypedStringsUsingJdbcOther() throws Exception {
+    void clientJsonbArraysKeepTheirPostgreSqlTypeAcrossJdbcWrappers() throws Exception {
         OAuthStringListJsonbTypeHandler handler = new OAuthStringListJsonbTypeHandler();
         PreparedStatement statement = mock(PreparedStatement.class);
         handler.setNonNullParameter(statement, 1, List.of("https://client.example/callback"), JdbcType.OTHER);
-        verify(statement).setObject(1, "[\"https://client.example/callback\"]", Types.OTHER);
+        var json = org.mockito.ArgumentCaptor.forClass(org.postgresql.util.PGobject.class);
+        verify(statement).setObject(org.mockito.ArgumentMatchers.eq(1), json.capture());
+        assertEquals("jsonb", json.getValue().getType());
+        assertEquals("[\"https://client.example/callback\"]", json.getValue().getValue());
 
         ResultSet resultSet = mock(ResultSet.class);
         when(resultSet.getString("redirect_uris"))
@@ -436,7 +438,7 @@ class OAuthRealmPersistenceContractTest {
         Path path = repositoryRoot().resolve(ADMIN_PREFIX + "resources/" + mapper);
         assertTrue(Files.isRegularFile(path), "Missing mapper XML: " + mapper);
         String xml = Files.readString(path).toLowerCase();
-        assertTrue(xml.contains("from " + table), "Wrong table mapping: " + mapper);
+        assertTrue(xml.contains("from tianquan_oauth." + table), "Wrong table mapping: " + mapper);
         assertTrue(xml.contains("tenant_id = #{tenantid}"), "Missing trusted tenant predicate: " + mapper);
         assertTrue(xml.contains("deleted_at is null"), "Missing active-row predicate: " + mapper);
         assertTrue(xml.contains("version = #{expectedversion}"), "Missing optimistic update: " + mapper);

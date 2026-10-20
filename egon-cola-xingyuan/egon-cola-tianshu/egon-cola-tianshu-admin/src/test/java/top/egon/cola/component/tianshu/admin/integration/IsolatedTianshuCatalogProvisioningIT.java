@@ -182,9 +182,23 @@ public class IsolatedTianshuCatalogProvisioningIT {
     }
 
     @lombok.RequiredArgsConstructor
-    private static class GuardedPhysicalDataSource extends AbstractDataSource {
+    public static class GuardedPhysicalDataSource extends AbstractDataSource {
         private final DataSource delegate;
         private final IsolatedDatabaseReceiptDTO receipt;
+
+
+        // ShardingSphere inspects JavaBean connection properties before using the guarded connections.
+        public String getUrl() {
+            return delegate instanceof DriverManagerDataSource source ? source.getUrl() : null;
+        }
+
+        public String getUsername() {
+            return delegate instanceof DriverManagerDataSource source ? source.getUsername() : null;
+        }
+
+        public String getPassword() {
+            return delegate instanceof DriverManagerDataSource source ? source.getPassword() : null;
+        }
 
         @Override
         public Connection getConnection() throws SQLException {
@@ -292,9 +306,6 @@ public class IsolatedTianshuCatalogProvisioningIT {
         try {
             MDC.put("tenantId", prepared.getTenantId());
             MDC.put("userId", prepared.getActorId());
-            if (prior == null) {
-                publishCheckpoint(checkpoint, strictMapper().writeValueAsBytes(pending), null);
-            }
             try (var context = openCatalogContext(manifest, receipt, repository, prepared)) {
                 Runnable guard = context.getBean("isolatedOwnershipGuard", Runnable.class);
                 var tx = new TransactionTemplate(context.getBean("transactionManager", PlatformTransactionManager.class));
@@ -305,6 +316,7 @@ public class IsolatedTianshuCatalogProvisioningIT {
                 var validation = context.getBean("egonColaValidationUtils", ValidationUtils.class);
                 if (prior == null) {
                     guard.run();
+                    publishCheckpoint(checkpoint, strictMapper().writeValueAsBytes(pending), null);
                     tx.executeWithoutResult(status -> {
                         new JdbcTemplate(context.getBean("dataSource", DataSource.class))
                                 .queryForObject("select pg_advisory_xact_lock(?)", Object.class, 0x5449414e5348554cL);
@@ -343,6 +355,17 @@ public class IsolatedTianshuCatalogProvisioningIT {
                 publishCheckpoint(checkpoint, strictMapper().writeValueAsBytes(confirmed),
                         previous == null ? strictMapper().writeValueAsBytes(pending) : previous);
             } catch (RuntimeException failedOwner) {
+                Throwable cause = failedOwner;
+                for (int depth = 0; cause != null && depth < 32; depth++, cause = cause.getCause()) {
+                    System.err.println("XINGYUAN_FAILURE_TYPE " + cause.getClass().getName());
+                    if (cause instanceof org.springframework.beans.factory.BeanCreationException beanFailure) {
+                        System.err.println("XINGYUAN_FAILURE_BEAN " + beanFailure.getBeanName());
+                    }
+                    java.util.Arrays.stream(cause.getStackTrace()).limit(12).forEach(frame -> System.err.println("  at " + frame));
+                }
+                if (prior == null && !Files.exists(checkpoint, LinkOption.NOFOLLOW_LINKS)) {
+                    throw new IllegalStateException("XINGYUAN_DEPENDENCY_UNAVAILABLE");
+                }
                 // Preserve the pending receipt; neither this invocation nor resume repeats an unknown write.
                 throw new IllegalStateException("XINGYUAN_COMMIT_UNKNOWN");
             }
@@ -473,6 +496,7 @@ public class IsolatedTianshuCatalogProvisioningIT {
         };
         guard.run();
         var context = new AnnotationConfigApplicationContext();
+        context.getBeanFactory().setConversionService(org.springframework.boot.convert.ApplicationConversionService.getSharedInstance());
         context.setBeanNameGenerator(new org.springframework.context.annotation.AnnotationBeanNameGenerator());
         context.getDefaultListableBeanFactory().setAllowBeanDefinitionOverriding(false);
         context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("isolatedTianshu", Map.of(
@@ -526,6 +550,19 @@ public class IsolatedTianshuCatalogProvisioningIT {
     public static class TianshuPersistenceConfiguration {
         @Bean("jacksonObjectMapper") ObjectMapper mapper() { return strictMapper(); }
 
+        @Bean("egonColaShardingLogicalDataSourceFactory")
+        top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingDataSourceBootstrapper.LogicalDataSourceFactory logicalFactory(
+                @Qualifier("egonColaValidationUtils") ValidationUtils validation,
+                @Qualifier("egon.cola.component.mybatis-plus.sharding-top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties")
+                EgonColaShardingProperties properties) {
+            var runner = new EgonColaPostgreDdlRunner(validation, new PathMatchingResourcePatternResolver(),
+                    Clock.systemUTC(), Duration.ofSeconds(5), Duration.ofSeconds(30));
+            var initializer = new top.egon.cola.component.outbox.migration.OutboxManagedDdlInitializer(runner,
+                    new EgonColaShardingTopologyValidator(validation), validation, properties,
+                    new top.egon.cola.component.outbox.autoconfigure.OutboxMpStorageProperties(), strictMapper());
+            return new top.egon.cola.component.outbox.migration.OutboxLogicalDataSourceFactory(initializer);
+        }
+
         @Bean("egon.cola.component.mybatis-plus.sharding-top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties")
         EgonColaShardingProperties shardingProperties(@Qualifier("isolatedVerifiedDatabaseInputs") VerifiedDatabaseInputsBO inputs) {
             return EgonColaShardingProperties.builder().mode(EgonColaShardingProperties.ModeEnum.SHARDING)
@@ -554,7 +591,8 @@ public class IsolatedTianshuCatalogProvisioningIT {
                         Clock.systemUTC(), Duration.ofSeconds(5), Duration.ofSeconds(30));
                 var results = runner.run(List.of(new EgonColaDdlTargetBO("tianshu_0", "public", EgonColaDdlTargetBO.RoleEnum.MASTER_DATA,
                         physical, manifest, topology.fingerprint())));
-                if (results.size() != manifest.scripts().size() || results.stream().anyMatch(result -> !"public".equals(result.schema())
+                if (results.isEmpty() || results.size() != manifest.scripts().size() - manifest.startingIndex(results.getFirst().version())
+                        || results.stream().anyMatch(result -> !"public".equals(result.schema())
                         || !"tianshu_0".equals(result.alias()))) { throw new IllegalStateException("XINGYUAN_PARTIAL"); }
             }
             guard.run();
@@ -563,6 +601,7 @@ public class IsolatedTianshuCatalogProvisioningIT {
         }
 
         @Bean(name = "dataSource", destroyMethod = "close")
+        @org.springframework.context.annotation.Primary
         DataSource logicalDataSource(@Qualifier("isolatedPhysicalDataSource") DataSource physical,
                 @Qualifier("isolatedTianshuTopology") EgonColaShardingTopologyValidator.TopologyBO topology,
                 @Qualifier("egonColaShardingLogicalDataSourceFactory") top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingDataSourceBootstrapper.LogicalDataSourceFactory factory,
@@ -865,8 +904,8 @@ public class IsolatedTianshuCatalogProvisioningIT {
     static void verifyDatabaseConnection(Connection connection, IsolatedDatabaseReceiptDTO receipt)
             throws SQLException {
         try (var query = connection.prepareStatement("""
-                SELECT current_database(), inet_server_addr()::text, inet_server_port(),
-                       d.oid::bigint, obj_description(d.oid, 'pg_database'), pg_get_userbyid(d.datdba)
+                SELECT current_database(), host(inet_server_addr()), inet_server_port(),
+                       d.oid::bigint, shobj_description(d.oid, 'pg_database'), pg_get_userbyid(d.datdba)
                 FROM pg_database d WHERE d.datname = current_database()
                 """)) {
             query.setQueryTimeout(5);

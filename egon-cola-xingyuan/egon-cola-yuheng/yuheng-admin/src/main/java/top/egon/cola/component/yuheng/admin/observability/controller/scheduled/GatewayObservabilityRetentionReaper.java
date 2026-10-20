@@ -1,6 +1,8 @@
 package top.egon.cola.component.yuheng.admin.observability.controller.scheduled;
 
 
+import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent;
+
 import org.springframework.scheduling.annotation.Scheduled;
 import top.egon.cola.component.yuheng.admin.observability.service.GatewayCallEventIngestService;
 
@@ -11,6 +13,8 @@ import top.egon.cola.component.yuheng.admin.observability.service.GatewayCallEve
  * 用法 / Usage: 通过 Spring 容器或上层组件使用该类型；/ Use this type through the Spring container or an enclosing component; its public contract is the supported extension and invocation boundary.
  */
 public class GatewayObservabilityRetentionReaper {
+
+    private final GatewayPersistenceContextComponent persistenceContext;
 
     /**
      * 中文说明：保存 服务 对应的状态、依赖或配置值；字段类型为 {@code GatewayCallEventIngestService}，由 {@code GatewayObservabilityRetentionReaper} 在其生命周期内读取或更新。
@@ -28,8 +32,10 @@ public class GatewayObservabilityRetentionReaper {
      * @param service 参数 服务；parameter service。
      */
     public GatewayObservabilityRetentionReaper(
-            GatewayCallEventIngestService service) {
+            GatewayCallEventIngestService service,
+            GatewayPersistenceContextComponent persistenceContext) {
         this.service = service;
+        this.persistenceContext = persistenceContext;
     }
 
     /**
@@ -42,7 +48,10 @@ public class GatewayObservabilityRetentionReaper {
             fixedDelayString =
                     "${yuheng.admin.observability.retention-reap-ms:3600000}"
     )
-    public void reap() {
-        service.purgeExpired();
+    public void reap() throws Exception {
+        persistenceContext.call(null, () -> {
+            service.purgeExpired();
+            return null;
+        });
     }
 }

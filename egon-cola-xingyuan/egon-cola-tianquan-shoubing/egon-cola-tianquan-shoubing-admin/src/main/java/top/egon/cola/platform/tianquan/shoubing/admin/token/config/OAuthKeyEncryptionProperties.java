@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 import lombok.ToString;
 import lombok.experimental.Accessors;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.validation.annotation.Validated;
 
 @Data
@@ -18,6 +19,7 @@ import org.springframework.validation.annotation.Validated;
 @AllArgsConstructor
 @Accessors(chain = true)
 @Builder
+@Qualifier("oauthKeyEncryptionProperties")
 @ConfigurationProperties(prefix = "egon.tianquan-shoubing.oauth.key-encryption")
 @Validated
 public class OAuthKeyEncryptionProperties {

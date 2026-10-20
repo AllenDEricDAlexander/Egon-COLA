@@ -204,7 +204,7 @@ class DdcConfigOutboxContractTest {
                 DdcTenantBindingDTO.builder().tenantId(101L).identityTenantId("tenant-test").enabled(true).build());
         DdcConfigDispatchDeliveryHandler handler = new DdcConfigDispatchDeliveryHandler(
                 new ObjectMapper(), validationUtils, tenantRegistry, new DdcTenantContextExecutor(),
-                dispatcher, converter, route);
+                dispatcherProvider(), converter, route);
         assertThat(new DeliveryHandlerRegistry(List.of(handler)).required(route.channel())).isSameAs(handler);
         DeliveryResult stale = handler.deliver(context(event));
         assertThat(stale.kind()).isEqualTo(DeliveryResult.Kind.PERMANENT_FAILURE);
@@ -271,7 +271,26 @@ class DdcConfigOutboxContractTest {
     private DdcConfigDispatchDeliveryHandler handler(DdcTenantRegistry tenantRegistry) {
         return new DdcConfigDispatchDeliveryHandler(
                 new ObjectMapper(), validationUtils, tenantRegistry, new DdcTenantContextExecutor(),
-                dispatcher, converter, route);
+                dispatcherProvider(), converter, route);
+    }
+
+    private org.springframework.beans.factory.ObjectProvider<DdcPendingPublishDispatcher> dispatcherProvider() {
+        return new org.springframework.beans.factory.support.StaticListableBeanFactory(
+                Map.of("ddcPendingPublishDispatcher", dispatcher)).getBeanProvider(DdcPendingPublishDispatcher.class);
+    }
+
+    @Test
+    void registeringTheDeliveryHandlerDoesNotInitializeItsOutboxPublisher() {
+        var factory = new org.springframework.beans.factory.support.DefaultListableBeanFactory();
+        factory.registerBeanDefinition("ddcPendingPublishDispatcher",
+                new org.springframework.beans.factory.support.RootBeanDefinition(
+                        DdcPendingPublishDispatcher.class, () -> dispatcher));
+        DdcConfigDispatchDeliveryHandler handler = new DdcConfigDispatchDeliveryHandler(
+                new ObjectMapper(), validationUtils, tenantRegistry(), new DdcTenantContextExecutor(),
+                factory.getBeanProvider(DdcPendingPublishDispatcher.class), converter, route);
+
+        assertThat(new DeliveryHandlerRegistry(List.of(handler)).required(route.channel())).isSameAs(handler);
+        assertThat(factory.containsSingleton("ddcPendingPublishDispatcher")).isFalse();
     }
 
     private DdcTenantRegistry tenantRegistry() {

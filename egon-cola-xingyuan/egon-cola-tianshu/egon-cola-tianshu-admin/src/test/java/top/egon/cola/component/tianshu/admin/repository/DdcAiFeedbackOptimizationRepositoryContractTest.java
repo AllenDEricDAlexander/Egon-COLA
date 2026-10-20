@@ -3,13 +3,16 @@ package top.egon.cola.component.tianshu.admin.repository;
 import org.apache.ibatis.builder.xml.XMLMapperBuilder;
 import org.apache.ibatis.session.Configuration;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.slf4j.MDC;
 import top.egon.cola.component.tianshu.admin.dao.DdcAiUsageFeedbackMapper;
 import top.egon.cola.component.tianshu.admin.model.bo.DdcAiScoreAggregateBO;
 import top.egon.cola.component.tianshu.admin.model.convertor.DdcAiUsageFeedbackConverterImpl;
 import top.egon.cola.component.tianshu.admin.model.po.DdcAiScoreAggregatePO;
+import top.egon.cola.component.tianshu.admin.model.po.DdcAiUsageFeedbackPO;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiOptimizationRunPageQuery;
 import top.egon.cola.component.tianshu.admin.model.query.DdcAiUsageFeedbackPageQuery;
 import top.egon.cola.component.tianshu.admin.repository.impl.DdcAiUsageFeedbackRepositoryImpl;
@@ -22,16 +25,15 @@ import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class DdcAiFeedbackOptimizationRepositoryContractTest {
+
+    private static jakarta.validation.ValidatorFactory validators;
+    private static top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils.Binding validationBinding;
 
     private static final String FEEDBACK = "top.egon.cola.component.tianshu.admin.dao.DdcAiUsageFeedbackMapper";
     private static final String POLICY = "top.egon.cola.component.tianshu.admin.dao.DdcAiOptimizationPolicyMapper";
@@ -41,6 +43,20 @@ class DdcAiFeedbackOptimizationRepositoryContractTest {
     private final DdcAiUsageFeedbackMapper feedbackMapper = mock(DdcAiUsageFeedbackMapper.class);
     private final DdcAiUsageFeedbackRepositoryImpl feedbackRepository =
             new DdcAiUsageFeedbackRepositoryImpl(feedbackMapper, new DdcAiUsageFeedbackConverterImpl(), null);
+
+    @BeforeAll
+    static void bindValidation() {
+        validators = jakarta.validation.Validation.buildDefaultValidatorFactory();
+        validationBinding = top.egon.cola.component.common.mybatis.model.EgonColaModelValidationUtils.initialize(
+                new top.egon.cola.component.common.core.validation.ValidationUtils(validators.getValidator()),
+                DdcAiFeedbackOptimizationRepositoryContractTest.class);
+    }
+
+    @AfterAll
+    static void releaseValidation() {
+        validationBinding.close();
+        validators.close();
+    }
 
     @BeforeEach
     void bindTenant() {
@@ -59,7 +75,7 @@ class DdcAiFeedbackOptimizationRepositoryContractTest {
         for (String statement : List.of(FEEDBACK + ".selectActiveById", FEEDBACK + ".selectActiveByIds",
                 FEEDBACK + ".selectClaimableForJudge", FEEDBACK + ".selectScoreAggregate", FEEDBACK + ".selectWorst",
                 FEEDBACK + ".selectPage", FEEDBACK + ".countPage", FEEDBACK + ".selectExpiredIdsForUpdate",
-                FEEDBACK + ".softDeleteByIds", FEEDBACK + ".deleteVersionedById",
+                FEEDBACK + ".deleteVersionedById",
                 POLICY + ".selectActiveById", POLICY + ".selectActiveByIds", POLICY + ".selectActiveByResourceId",
                 POLICY + ".selectActiveByResourceIdForUpdate", POLICY + ".selectEvaluableForUpdate",
                 POLICY + ".selectJudgeEnabledResourceIds", POLICY + ".deleteVersionedById",
@@ -71,7 +87,7 @@ class DdcAiFeedbackOptimizationRepositoryContractTest {
     }
 
     @Test
-    void claimAndRetentionQueriesSkipLockedTenantRows() throws Exception {
+    void claimAndRetentionQueriesKeepBoundedTenantRowLocks() throws Exception {
         Configuration configuration = parse();
 
         String claim = sql(configuration, FEEDBACK + ".selectClaimableForJudge", Map.of("tenantId", 42L,
@@ -82,9 +98,9 @@ class DdcAiFeedbackOptimizationRepositoryContractTest {
 
         assertThat(claim).contains("from ddc_ai_usage_feedback f", "f.tenant_id = ?", "f.explicit_score is null",
                 "f.judge_attempts < ?", "f.judge_state = 'judging' and f.judge_lease_until < ?",
-                "for update skip locked").doesNotContain("_t0");
-        assertThat(evaluable).contains("p.active_run_id is null", "nulls first", "for update skip locked");
-        assertThat(expired).contains("f.occurred_at < ?", "for update skip locked");
+                "for update").doesNotContain("_t0");
+        assertThat(evaluable).contains("p.active_run_id is null", "nulls first", "for update");
+        assertThat(expired).contains("f.occurred_at < ?", "for update");
     }
 
     @Test
@@ -127,15 +143,25 @@ class DdcAiFeedbackOptimizationRepositoryContractTest {
     }
 
     @Test
-    void retentionSoftDeletesOnlyLockedIds() {
-        when(feedbackMapper.selectExpiredIdsForUpdate(42L, NOW, 1000)).thenReturn(List.of(1L, 2L));
-        when(feedbackMapper.softDeleteByIds(eq(42L), eq(List.of(1L, 2L)), any(), anyString())).thenReturn(2);
+    void retentionCountsOnlySuccessfulVersionedDeletesOfLockedRows() {
+        DdcAiUsageFeedbackPO first = DdcAiUsageFeedbackPO.builder().id(1L).tenantId(42L).version(7L).build();
+        DdcAiUsageFeedbackPO stale = DdcAiUsageFeedbackPO.builder().id(2L).tenantId(42L).version(8L).build();
+        when(feedbackMapper.selectExpiredIdsForUpdate(42L, NOW, 1000)).thenReturn(List.of(1L, 2L, 3L));
+        when(feedbackMapper.selectActiveById(42L, 1L)).thenReturn(first);
+        when(feedbackMapper.selectActiveById(42L, 2L)).thenReturn(stale);
+        when(feedbackMapper.deleteVersionedById(first)).thenReturn(1);
+        when(feedbackMapper.deleteVersionedById(stale)).thenReturn(0);
 
-        assertThat(feedbackRepository.softDeleteExpired(NOW, 1000)).isEqualTo(2);
+        assertThat(feedbackRepository.softDeleteExpired(NOW, 1000)).isEqualTo(1);
+        verify(feedbackMapper).deleteVersionedById(first);
+        verify(feedbackMapper).deleteVersionedById(stale);
+        assertThat(first.getVersion()).isEqualTo(7L);
+        assertThat(first.getUpdateUserId()).isEqualTo("system:ai-retention");
+        assertThat(first.getUpdateTime()).isNotNull();
 
         when(feedbackMapper.selectExpiredIdsForUpdate(42L, NOW, 10)).thenReturn(List.of());
         assertThat(feedbackRepository.softDeleteExpired(NOW, 10)).isZero();
-        verify(feedbackMapper, never()).softDeleteByIds(eq(42L), eq(List.of()), any(), anyString());
+        verify(feedbackMapper, never()).deleteVersionedById((DdcAiUsageFeedbackPO) null);
     }
 
     private Configuration parse() throws Exception {

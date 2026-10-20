@@ -147,7 +147,7 @@ public class IdpSecurityConfig {
 
     /** Retires exact legacy operations before any credential handling and denies other unmatched requests. */
     @Bean("idpFallbackSecurityFilterChain")
-    @Order(3)
+    @Order(org.springframework.core.Ordered.LOWEST_PRECEDENCE)
     SecurityFilterChain idpFallbackSecurityFilterChain(HttpSecurity http,
             @Qualifier("legacyOAuthRetirementFilter") LegacyOAuthRetirementFilter retirementFilter) throws Exception {
         return http.csrf(csrf -> csrf.disable())

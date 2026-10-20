@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.reporting.controller.scheduled;
 
+import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent;
+
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -30,6 +32,8 @@ import java.util.Set;
  */
 @Component
 public class GatewayDefinitionLifecycleReconciler {
+
+    private final GatewayPersistenceContextComponent persistenceContext;
 
     /**
      * 中文说明：保存 客户端 对应的状态、依赖或配置值；字段类型为 {@code DdcManagementClient}，由 {@code GatewayDefinitionLifecycleReconciler} 在其生命周期内读取或更新。
@@ -106,14 +110,16 @@ public class GatewayDefinitionLifecycleReconciler {
             GatewayProjectionService projections,
             GatewayDefinitionLifecycleRepository lifecycle,
             GatewayAuditLogRepository audits,
-            TransactionTemplate transactions) {
+            TransactionTemplate transactions,
+            GatewayPersistenceContextComponent persistenceContext) {
         this(client.getIfAvailable(),
                 applications,
                 projections,
                 lifecycle,
                 audits,
                 transactions,
-                Clock.systemUTC());
+                Clock.systemUTC(),
+                persistenceContext);
     }
 
     /**
@@ -135,7 +141,8 @@ public class GatewayDefinitionLifecycleReconciler {
             GatewayDefinitionLifecycleRepository lifecycle,
             GatewayAuditLogRepository audits,
             TransactionTemplate transactions,
-            Clock clock) {
+            Clock clock,
+            GatewayPersistenceContextComponent persistenceContext) {
         this.client = client;
         this.applications = applications;
         this.projections = projections;
@@ -143,6 +150,7 @@ public class GatewayDefinitionLifecycleReconciler {
         this.audits = audits;
         this.transactions = transactions;
         this.clock = clock;
+        this.persistenceContext = persistenceContext;
     }
 
     /**
@@ -155,57 +163,60 @@ public class GatewayDefinitionLifecycleReconciler {
             fixedDelayString =
                     "${yuheng.admin.definition-reconcile-delay:30000}"
     )
-    public void reconcile() {
-        if (client == null) {
-            return;
-        }
-        Instant now = clock.instant();
-        Set<GatewayDefinitionLifecycleScopeDTO> scopes = new LinkedHashSet<>();
-        for (GatewayApplicationBO application
-                : applications.findAllByDeletedFalseOrderByCreatedAtDesc()) {
-            scopes.add(new GatewayDefinitionLifecycleScopeDTO(
-                    application.getBizCode(),
-                    application.getApplicationCode(),
-                    application.getEnv(),
-                    application.getNamespace()
-            ));
-        }
-        Set<String> activeDefinitionSets = new LinkedHashSet<>();
-        for (GatewayDefinitionLifecycleScopeDTO scope : scopes) {
-            top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<
-                    List<top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProviderInstanceVO>>
-                    providers;
-            try {
-                providers = projections.instances(
-                        scope.bizCode(),
-                        scope.appCode(),
-                        scope.env(),
-                        scope.namespace()
-                );
-            } catch (RuntimeException unavailable) {
-                return;
+    public void reconcile() throws Exception {
+        persistenceContext.call(null, () -> {
+            if (client == null) {
+                return null;
             }
-            if (providers.stale()) {
-                return;
+            Instant now = clock.instant();
+            Set<GatewayDefinitionLifecycleScopeDTO> scopes = new LinkedHashSet<>();
+            for (GatewayApplicationBO application
+                    : applications.findAllByDeletedFalseOrderByCreatedAtDesc()) {
+                scopes.add(new GatewayDefinitionLifecycleScopeDTO(
+                        application.getBizCode(),
+                        application.getApplicationCode(),
+                        application.getEnv(),
+                        application.getNamespace()
+                ));
             }
-            providers.value().stream()
-                    .filter(provider -> online(provider, now))
-                    .map(top.egon.cola.component.yuheng.admin.runtime.domain.vo
-                            .GatewayProviderInstanceVO::definitionSetId)
-                    .filter(value -> value != null && !value.isBlank())
-                    .forEach(activeDefinitionSets::add);
-        }
-        Set<String> openApiDefinitionSets =
-                lifecycle.activeOpenApiDefinitionSetIds();
-        if (openApiDefinitionSets != null) {
-            activeDefinitionSets.addAll(openApiDefinitionSets);
-        }
-        transactions.executeWithoutResult(status -> {
-            top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO result =
-                    lifecycle.reconcile(activeDefinitionSets, now);
-            if (result.changed()) {
-                audits.save(audit(activeDefinitionSets, result, now));
+            Set<String> activeDefinitionSets = new LinkedHashSet<>();
+            for (GatewayDefinitionLifecycleScopeDTO scope : scopes) {
+                top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProjectionEnvelopeVO<
+                        List<top.egon.cola.component.yuheng.admin.runtime.domain.vo.GatewayProviderInstanceVO>>
+                        providers;
+                try {
+                    providers = projections.instances(
+                            scope.bizCode(),
+                            scope.appCode(),
+                            scope.env(),
+                            scope.namespace()
+                    );
+                } catch (RuntimeException unavailable) {
+                    return null;
+                }
+                if (providers.stale()) {
+                    return null;
+                }
+                providers.value().stream()
+                        .filter(provider -> online(provider, now))
+                        .map(top.egon.cola.component.yuheng.admin.runtime.domain.vo
+                                .GatewayProviderInstanceVO::definitionSetId)
+                        .filter(value -> value != null && !value.isBlank())
+                        .forEach(activeDefinitionSets::add);
             }
+            Set<String> openApiDefinitionSets =
+                    lifecycle.activeOpenApiDefinitionSetIds();
+            if (openApiDefinitionSets != null) {
+                activeDefinitionSets.addAll(openApiDefinitionSets);
+            }
+            transactions.executeWithoutResult(status -> {
+                top.egon.cola.component.yuheng.admin.reporting.domain.vo.GatewayReconcileResultVO result =
+                        lifecycle.reconcile(activeDefinitionSets, now);
+                if (result.changed()) {
+                    audits.save(audit(activeDefinitionSets, result, now));
+                }
+            });
+            return null;
         });
     }
 

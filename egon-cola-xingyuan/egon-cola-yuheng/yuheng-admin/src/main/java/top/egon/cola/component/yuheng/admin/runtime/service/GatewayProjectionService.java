@@ -58,7 +58,7 @@ import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayReleaseAtte
 public class GatewayProjectionService {
 
     @NonNull
-    @Qualifier("gatewayGroupRepository")
+    @Qualifier("mpGatewayGroupRepository")
     private final GatewayGroupRepository groups;
     @NonNull
     @Qualifier("gatewayReleaseService")
@@ -76,7 +76,7 @@ public class GatewayProjectionService {
     @Qualifier("gatewayEngineRoleConsistencyStrategy")
     private final GatewayEngineRoleConsistencyStrategy roleStrategy;
     @NonNull
-    @Qualifier("jdbcGatewayReleasePublicationRepository")
+    @Qualifier("mpGatewayReleasePublicationRepository")
     private final GatewayReleasePublicationRepository publications;
 
     private final Map<String, GatewayProjectionEnvelopeVO<?>> cache = new ConcurrentHashMap<>();

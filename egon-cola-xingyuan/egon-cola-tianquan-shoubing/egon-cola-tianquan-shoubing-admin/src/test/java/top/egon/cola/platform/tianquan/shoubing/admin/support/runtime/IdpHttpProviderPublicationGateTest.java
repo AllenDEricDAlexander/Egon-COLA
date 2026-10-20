@@ -27,6 +27,35 @@ import static org.mockito.Mockito.when;
 class IdpHttpProviderPublicationGateTest {
 
     @Test
+    void nonFailFastStartupWaitsForTheRealConfigLeaseAndAllReadinessBeforePublishing() {
+        var coordinator = readyCoordinator();
+        when(coordinator.state()).thenReturn(DdcRuntimeState.STARTING);
+        when(coordinator.currentSession()).thenReturn(Optional.empty());
+        var provider = mock(DdcHttpRegistrationRuntime.class);
+        var configured = properties(0); configured.setFailFast(false);
+        var readiness = new java.util.concurrent.atomic.AtomicReference<>(status(true, false, true));
+        var gate = new IdpHttpProviderPublicationGate(coordinator, provider, configured, readiness::get);
+        gate.onApplicationEvent(webServerEvent(18111, null));
+        gate.onApplicationEvent(mock(ApplicationReadyEvent.class));
+        gate.retryPublication();
+        verify(provider, never()).onHttpServerReady(18111);
+        when(coordinator.state()).thenReturn(DdcRuntimeState.READY);
+        gate.retryPublication();
+        verify(provider, never()).onHttpServerReady(18111);
+        var configSession = readyCoordinator().currentSession();
+        when(coordinator.currentSession()).thenReturn(configSession);
+        gate.retryPublication();
+        verify(provider, never()).onHttpServerReady(18111);
+        readiness.set(status(true, true, false));
+        gate.retryPublication();
+        verify(provider, never()).onHttpServerReady(18111);
+        readiness.set(status(true, true, true));
+        gate.retryPublication();
+        gate.retryPublication();
+        verify(provider, times(1)).onHttpServerReady(18111);
+    }
+
+    @Test
     void providerRequiresDdcOauthAndOutboxReadiness() {
         IdpHttpProviderPublicationGate gate = new IdpHttpProviderPublicationGate(
                 readyCoordinator(),

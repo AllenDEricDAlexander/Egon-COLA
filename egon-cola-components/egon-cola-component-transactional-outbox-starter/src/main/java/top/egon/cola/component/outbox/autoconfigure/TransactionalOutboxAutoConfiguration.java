@@ -279,7 +279,7 @@ public class TransactionalOutboxAutoConfiguration {
             @Qualifier("deliveryFailureClassifier") DeliveryFailureClassifier failureClassifier,
             @Qualifier("outboxRetryPolicy") OutboxRetryPolicy retryPolicy,
             @Qualifier("outboxDeadLetterNotifier") OutboxDeadLetterNotifier deadLetterNotifier,
-            @Qualifier("outboxMetrics") OutboxMetrics metrics,
+            OutboxMetrics metrics,
             @Qualifier("outboxWorkerIdentity") OutboxWorkerIdentity workerIdentity,
             @Qualifier("outboxDeliveryExecutor") TaskExecutor taskExecutor,
             @Qualifier("outboxStateMachineOutboxProperties") TransactionalOutboxProperties properties,

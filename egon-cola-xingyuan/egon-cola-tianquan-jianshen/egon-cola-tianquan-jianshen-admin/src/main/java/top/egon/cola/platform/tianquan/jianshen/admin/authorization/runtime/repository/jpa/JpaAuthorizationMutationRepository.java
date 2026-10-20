@@ -212,12 +212,7 @@ public class JpaAuthorizationMutationRepository implements
             int batchSize) {
         @SuppressWarnings("unchecked")
         List<Number> mutationIds = entityManager.createNativeQuery("""
-                        select mutation_id
-                          from rbac3_authorization_mutation
-                         where status in ('COMMITTED', 'PROJECTED', 'RECOVERY_REQUIRED')
-                         order by updated_at, mutation_id
-                         for update skip locked
-                         limit :batchSize
+                        select rbac3_claim_recoverable_mutations(:batchSize)
                         """)
                 .setParameter("batchSize", batchSize)
                 .getResultList();

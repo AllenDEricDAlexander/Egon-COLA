@@ -28,7 +28,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJ
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_authorization", autoResultMap = true)
+@TableName(value = "oauth_authorization", schema = "tianquan_oauth", autoResultMap = true)
 public class OAuthAuthorizationPO extends EgonModel<OAuthAuthorizationPO> {
 
     @TableField(value = "client_pk", updateStrategy = FieldStrategy.NEVER)

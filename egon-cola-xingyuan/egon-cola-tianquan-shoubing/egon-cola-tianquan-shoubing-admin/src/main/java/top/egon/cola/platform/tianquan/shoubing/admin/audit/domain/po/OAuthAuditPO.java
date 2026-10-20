@@ -3,7 +3,6 @@ package top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.po;
 import com.baomidou.mybatisplus.annotation.FieldStrategy;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
@@ -22,6 +21,7 @@ import lombok.experimental.Accessors;
 import lombok.experimental.SuperBuilder;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
 import top.egon.cola.component.common.mybatis.model.EgonModel;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthJsonbTypeHandler;
 
 @Data
 @NoArgsConstructor
@@ -29,7 +29,7 @@ import top.egon.cola.component.common.mybatis.model.EgonModel;
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_audit", autoResultMap = true)
+@TableName(value = "oauth_audit", schema = "tianquan_oauth", autoResultMap = true)
 public class OAuthAuditPO extends EgonModel<OAuthAuditPO> {
 
     @TableField(value = "event_id", updateStrategy = FieldStrategy.NEVER)
@@ -107,7 +107,7 @@ public class OAuthAuditPO extends EgonModel<OAuthAuditPO> {
     @ToString.Exclude
     @EqualsAndHashCode.Exclude
     @Builder.Default
-    @TableField(value = "payload", typeHandler = JacksonTypeHandler.class)
+    @TableField(value = "payload", typeHandler = OAuthJsonbTypeHandler.class)
     @NotNull(groups = {EgonColaModelValidationGroups.Insert.class, EgonColaModelValidationGroups.Update.class,
             EgonColaModelValidationGroups.Persisted.class})
     private JsonNode payload = JsonNodeFactory.instance.objectNode();

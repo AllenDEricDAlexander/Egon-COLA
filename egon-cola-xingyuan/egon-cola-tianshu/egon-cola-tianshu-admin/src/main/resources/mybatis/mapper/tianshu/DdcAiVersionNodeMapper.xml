@@ -41,13 +41,14 @@
     <select id="selectActiveByIds" resultMap="DdcAiVersionNodePOResultMap">
         SELECT <include refid="VersionNodeColumns"/><include refid="ActiveVersionNodeOwner"/>
           AND n.id IN <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
-        ORDER BY n.version_id, n.path COLLATE "C", n.id
+        <!-- The managed path column already has C collation. -->
+        ORDER BY n.version_id, n.path, n.id
     </select>
 
     <select id="selectTree" resultMap="DdcAiVersionNodePOResultMap">
         SELECT <include refid="VersionNodeColumns"/><include refid="ActiveVersionNodeOwner"/>
           AND n.version_id = #{versionId}
-        ORDER BY n.path COLLATE "C", n.id
+        ORDER BY n.path, n.id
     </select>
 
     <select id="selectByVersionIdAndPath" resultMap="DdcAiVersionNodePOResultMap">

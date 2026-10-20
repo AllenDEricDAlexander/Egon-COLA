@@ -52,6 +52,18 @@ class TransactionalOutboxAutoConfigurationTest {
     }
 
     @Test
+    void shouldUseTheMicrometerMetricsVariantForTheDispatcher() {
+        configuredContext().withBean(io.micrometer.core.instrument.MeterRegistry.class,
+                        io.micrometer.core.instrument.simple.SimpleMeterRegistry::new)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().hasSingleBean(OutboxDispatcher.class)
+                            .hasSingleBean(top.egon.cola.component.outbox.observability.OutboxMetrics.class);
+                    assertThat(context.getBean(top.egon.cola.component.outbox.observability.OutboxMetrics.class))
+                            .isInstanceOf(top.egon.cola.component.outbox.observability.MicrometerOutboxMetrics.class);
+                });
+    }
+
+    @Test
     void shouldDisableEveryRuntimeBean() {
         configuredContext()
                 .withPropertyValues(

@@ -1,9 +1,5 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.identity.repo;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
-import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -34,25 +30,25 @@ public class IdentityPersistenceAdapter implements IdentityUserStore, PasswordCr
     @Override
     @Transactional(readOnly = true)
     public Optional<IdentityUser> findByNormalizedUsername(
-            @NotBlank @Size(max = 128) String normalizedUsername) {
+            String normalizedUsername) {
         return users.findByNormalizedUsername(required(normalizedUsername, "normalizedUsername"));
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<IdentityUser> findById(@NotBlank @Size(max = 64) String identitySub) {
+    public Optional<IdentityUser> findById(String identitySub) {
         return users.findByIdentitySub(required(identitySub, "identitySub"));
     }
 
     @Override
     @Transactional
-    public IdentityUser save(@NotNull IdentityUser user, @PositiveOrZero long expectedVersion) {
+    public IdentityUser save(IdentityUser user, long expectedVersion) {
         return users.save(Objects.requireNonNull(user, "user"), expectedVersion);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Optional<PasswordCredential> findActive(@NotBlank @Size(max = 64) String identitySub) {
+    public Optional<PasswordCredential> findActive(String identitySub) {
         return credentials.findByIdentitySub(required(identitySub, "identitySub"))
                 .filter(credential -> credential.status() == PasswordCredential.Status.ACTIVE);
     }
@@ -60,8 +56,8 @@ public class IdentityPersistenceAdapter implements IdentityUserStore, PasswordCr
     @Override
     @Transactional
     public PasswordCredential save(
-            @NotNull PasswordCredential credential,
-            @PositiveOrZero long expectedVersion) {
+            PasswordCredential credential,
+            long expectedVersion) {
         return credentials.save(Objects.requireNonNull(credential, "credential"), expectedVersion);
     }
 

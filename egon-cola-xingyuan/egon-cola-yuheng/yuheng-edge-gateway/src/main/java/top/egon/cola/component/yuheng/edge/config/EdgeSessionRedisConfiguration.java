@@ -1,6 +1,10 @@
 package top.egon.cola.component.yuheng.edge.config;
 
 import org.springframework.boot.autoconfigure.data.redis.RedisProperties;
+import org.redisson.Redisson;
+import org.redisson.api.RedissonClient;
+import org.redisson.client.codec.StringCodec;
+import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -20,22 +24,37 @@ import java.time.Duration;
 
 @Configuration(value = "edgeSessionRedisConfiguration", proxyBeanMethods = false)
 public class EdgeSessionRedisConfiguration {
+    @Bean(name = "redisson", destroyMethod = "shutdown")
+    public RedissonClient edgePrimaryRedisson(
+            RedisProperties redisProperties,
+            @Value("${egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint}") String primaryEndpoint,
+            Environment environment) {
+        URI primary = requireSharedPrimary(redisProperties, primaryEndpoint, environment);
+        Config config = new Config();
+        config.setCodec(StringCodec.INSTANCE);
+        var server = config.useSingleServer()
+                .setAddress(primary.toString())
+                .setDatabase(redisProperties.getDatabase());
+        if (StringUtils.hasText(redisProperties.getUsername())) {
+            server.setUsername(redisProperties.getUsername());
+        }
+        if (StringUtils.hasText(redisProperties.getPassword())) {
+            server.setPassword(redisProperties.getPassword());
+        }
+        Duration timeout = redisProperties.getTimeout();
+        if (timeout != null && !timeout.isNegative() && !timeout.isZero()) {
+            server.setTimeout(Math.toIntExact(timeout.toMillis()));
+        }
+        return Redisson.create(config);
+    }
+
     @Bean(name = "edgeSessionRedisConnectionFactory")
     @Primary
     public RedisConnectionFactory edgeSessionRedisConnectionFactory(
             RedisProperties redisProperties,
             @Value("${egon.cola.platform.tianquan.shoubing.revocation.primary-endpoint}") String primaryEndpoint,
             Environment environment) {
-        URI configured = parseConfiguredRedisUrl(redisProperties.getUrl());
-        URI primary = parseConfiguredRedisUrl(primaryEndpoint);
-        if (!sameEndpoint(configured, primary)) {
-            throw new IllegalStateException("Spring Session and Shoubing Redis must use the same primary endpoint");
-        }
-        if ("redis".equalsIgnoreCase(primary.getScheme())
-                && (!environment.acceptsProfiles("local")
-                || !"127.0.0.1".equals(primary.getHost()))) {
-            throw new IllegalStateException("Plaintext Edge Redis is allowed only on 127.0.0.1 in the local profile");
-        }
+        URI primary = requireSharedPrimary(redisProperties, primaryEndpoint, environment);
 
         RedisStandaloneConfiguration server = new RedisStandaloneConfiguration(
                 primary.getHost(), primary.getPort() > 0 ? primary.getPort() : 6379);
@@ -67,6 +86,21 @@ public class EdgeSessionRedisConfiguration {
             @Qualifier("edgeSessionRedisSerializer")
             EdgeSessionRedisSerializer serializer) {
         return serializer;
+    }
+
+    private static URI requireSharedPrimary(RedisProperties redisProperties, String primaryEndpoint,
+            Environment environment) {
+        URI configured = parseConfiguredRedisUrl(redisProperties.getUrl());
+        URI primary = parseConfiguredRedisUrl(primaryEndpoint);
+        if (!sameEndpoint(configured, primary)) {
+            throw new IllegalStateException("Spring Session and Shoubing Redis must use the same primary endpoint");
+        }
+        if ("redis".equalsIgnoreCase(primary.getScheme())
+                && (!environment.acceptsProfiles("local")
+                || !"127.0.0.1".equals(primary.getHost()))) {
+            throw new IllegalStateException("Plaintext Edge Redis is allowed only on 127.0.0.1 in the local profile");
+        }
+        return primary;
     }
 
     private static URI parseConfiguredRedisUrl(String value) {

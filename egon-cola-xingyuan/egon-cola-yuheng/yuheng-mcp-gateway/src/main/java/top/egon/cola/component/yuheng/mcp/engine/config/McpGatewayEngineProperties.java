@@ -91,8 +91,22 @@ public record McpGatewayEngineProperties(
             @Positive @DefaultValue("1073741824") long maximumRequestBytes,
             @Positive @DefaultValue("4194304") long maximumResponseBytes,
             @NotNull @DurationMin(millis = 1) @DefaultValue("5s") Duration channelDrainTimeout,
-            @NotNull @Valid @DefaultValue TlsProperties rpcTls
+            @NotNull @Valid @DefaultValue TlsProperties rpcTls,
+            @Valid TlsProperties httpTls
     ) {
+        @org.springframework.boot.context.properties.bind.ConstructorBinding
+        public OutboundProperties { }
+
+        /**
+         * 中文说明：兼容仅配置原 HTTP 连接池与 RPC 传输的调用方。
+         * English summary: Preserves callers that configure only the existing HTTP pool and RPC transport.
+         */
+        public OutboundProperties(int maxConnections, int pendingAcquireMaxCount, Duration idleTimeout,
+                Duration requestTimeout, long maximumRequestBytes, long maximumResponseBytes,
+                Duration channelDrainTimeout, TlsProperties rpcTls) {
+            this(maxConnections, pendingAcquireMaxCount, idleTimeout, requestTimeout, maximumRequestBytes,
+                    maximumResponseBytes, channelDrainTimeout, rpcTls, null);
+        }
     }
 
     /**

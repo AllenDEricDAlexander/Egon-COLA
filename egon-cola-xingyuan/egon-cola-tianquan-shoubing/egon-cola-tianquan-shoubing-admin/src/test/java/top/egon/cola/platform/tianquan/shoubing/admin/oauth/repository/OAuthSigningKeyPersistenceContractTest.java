@@ -3,7 +3,6 @@ package top.egon.cola.platform.tianquan.shoubing.admin.oauth.repository;
 import com.baomidou.mybatisplus.annotation.EnumValue;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
-import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import jakarta.validation.Validation;
@@ -38,6 +37,7 @@ import top.egon.cola.component.common.mybatis.autoconfigure.EgonColaMybatisPlusP
 import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
 import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.common.mybatis.model.EgonColaModelValidationGroups;
+import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthJsonbTypeHandler;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.bo.OAuthAuditBO;
 import top.egon.cola.platform.tianquan.shoubing.admin.audit.domain.po.OAuthAuditPO;
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRealmBO;
@@ -104,9 +104,9 @@ class OAuthSigningKeyPersistenceContractTest {
         assertEquals("oauth_security_state", OAuthSecurityStatePO.class.getAnnotation(TableName.class).value());
         assertEquals("oauth_revocation", OAuthRevocationPO.class.getAnnotation(TableName.class).value());
         assertTrue(OAuthAuditPO.class.getAnnotation(TableName.class).autoResultMap());
-        assertEquals(JacksonTypeHandler.class,
+        assertEquals(OAuthJsonbTypeHandler.class,
                 OAuthSigningKeyPO.class.getDeclaredField("publicJwk").getAnnotation(TableField.class).typeHandler());
-        assertEquals(JacksonTypeHandler.class,
+        assertEquals(OAuthJsonbTypeHandler.class,
                 OAuthAuditPO.class.getDeclaredField("payload").getAnnotation(TableField.class).typeHandler());
         assertTrue(OAuthKeyStatusEnum.class.getDeclaredField("code").isAnnotationPresent(EnumValue.class));
         assertTrue(OAuthSecurityTargetEnum.class.getDeclaredField("code").isAnnotationPresent(EnumValue.class));
@@ -536,7 +536,7 @@ class OAuthSigningKeyPersistenceContractTest {
         Path path = repositoryRoot().resolve(ADMIN_PREFIX + "resources/" + resource);
         assertTrue(Files.isRegularFile(path), "Missing mapper XML " + resource);
         String xml = Files.readString(path).toLowerCase();
-        assertTrue(xml.contains("from " + table), "Wrong table mapping " + resource);
+        assertTrue(xml.contains("from tianquan_oauth." + table), "Wrong table mapping " + resource);
         assertTrue(xml.contains("tenant_id = #{tenantid}"), "Missing tenant predicate " + resource);
         assertTrue(xml.contains("deleted_at is null"), "Missing active predicate " + resource);
         assertTrue(xml.contains("version = #{expectedversion}"), "Missing expectedVersion predicate " + resource);

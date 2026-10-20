@@ -1,5 +1,6 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.oauth.service;
 
+import jakarta.validation.constraints.NotNull;
 import java.net.URI;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.OAuth2Error;
@@ -12,7 +13,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.bo.TrustedRea
 @Validated
 public interface TenantIssuerService {
 
-    TrustedRealmBO resolveExactIssuer(URI issuer);
+    TrustedRealmBO resolveExactIssuer(@NotNull URI issuer);
 
     default TrustedRealmBO resolveCurrentIssuer() {
         AuthorizationServerContext context = AuthorizationServerContextHolder.getContext();

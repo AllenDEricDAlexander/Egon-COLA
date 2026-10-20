@@ -106,7 +106,7 @@ class DdcTianshuDdlContractTest {
 
         assertThat(manifest.path("family").asText()).isEqualTo("tianshu");
         assertThat(typedManifest.family()).isEqualTo("tianshu");
-        assertThat(manifest.path("scripts").size()).isEqualTo(3);
+        assertThat(manifest.path("scripts").size()).isEqualTo(4);
         JsonNode v001 = manifest.path("scripts").get(0);
         JsonNode v002 = manifest.path("scripts").get(1);
         JsonNode v003 = manifest.path("scripts").get(2);
@@ -119,6 +119,11 @@ class DdcTianshuDdlContractTest {
         assertThat(v003.path("version").asText()).isEqualTo("20261017_001");
         assertThat(v003.path("path").asText()).isEqualTo(TIANSHU_AI_OPTIMIZATION_SQL);
         assertThat(v003.path("sha256").asText()).isEqualTo(sha256(requiredResource(TIANSHU_AI_OPTIMIZATION_SQL)));
+        JsonNode v004 = manifest.path("scripts").get(3);
+        assertThat(v004.path("version").asText()).isEqualTo("20261018_001");
+        assertThat(v004.path("sha256").asText()).isEqualTo(sha256(requiredResource(v004.path("path").asText())));
+        assertThat(typedManifest.freshBaselineVersion()).isEqualTo("20261018_001");
+        assertThat(typedManifest.startingIndex(null)).isEqualTo(3);
     }
 
     @Test

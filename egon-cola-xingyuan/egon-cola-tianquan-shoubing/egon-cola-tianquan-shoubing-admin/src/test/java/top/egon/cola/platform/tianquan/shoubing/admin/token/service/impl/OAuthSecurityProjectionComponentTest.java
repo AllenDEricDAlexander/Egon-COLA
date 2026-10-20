@@ -167,6 +167,40 @@ class OAuthSecurityProjectionComponentTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void realmAllocationClockMayAdvanceWithoutChangingItsSecurityGeneration() {
+        OAuthSecurityStateBO realmState = OAuthSecurityStateBO.builder()
+                .id(1L).version(0L).targetType(OAuthSecurityTargetEnum.REALM).targetKey("self")
+                .generation(1L).enabled(true).revision(17L).reasonCode("INITIALIZED").build();
+        OAuthSecurityStateBO clientState = OAuthSecurityStateBO.builder()
+                .id(2L).version(0L).targetType(OAuthSecurityTargetEnum.CLIENT).targetKey("501")
+                .generation(2L).enabled(true).revision(16L).reasonCode("INITIALIZED").build();
+        when(stateRepository.findByTarget(REALM, OAuthSecurityTargetEnum.REALM, "self"))
+                .thenReturn(Optional.of(realmState));
+        when(stateRepository.findByTarget(REALM, OAuthSecurityTargetEnum.CLIENT, "501"))
+                .thenReturn(Optional.of(clientState));
+        org.mockito.Mockito.doReturn(List.of("recovery-epoch-7", "17", "READY",
+                "1", "1", "7", "2", "1", "16"))
+                .when(script).eval(eq(RScript.Mode.READ_ONLY), anyString(), eq(RScript.ReturnType.MULTI), anyList());
+
+        var snapshot = component.snapshotForAuthorization(REALM, 501L, "SERVICE", null);
+
+        assertThat(snapshot.getRealmGeneration()).isEqualTo(1L);
+        assertThat(snapshot.getClientGeneration()).isEqualTo(2L);
+
+        for (List<Object> stale : List.<List<Object>>of(
+                List.of("recovery-epoch-7", "17", "READY", "0", "1", "7", "2", "1", "16"),
+                List.of("recovery-epoch-7", "17", "READY", "1", "1", "18", "2", "1", "16"),
+                List.of("recovery-epoch-7", "17", "READY", "1", "1", "7", "2", "1", "15"),
+                List.of("recovery-epoch-7", "16", "READY", "1", "1", "7", "2", "1", "16"))) {
+            org.mockito.Mockito.doReturn(stale).when(script).eval(eq(RScript.Mode.READ_ONLY),
+                    anyString(), eq(RScript.ReturnType.MULTI), anyList());
+            assertThatThrownBy(() -> component.snapshotForAuthorization(REALM, 501L, "SERVICE", null))
+                    .isInstanceOf(OAuth2AuthenticationException.class);
+        }
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void initializesFirstSubjectStateOnlyWhenNoPriorAuthorizationExists() {
         OAuthSecurityStateBO realmState = OAuthSecurityStateBO.builder()
                 .id(1L).version(0L).targetType(OAuthSecurityTargetEnum.REALM).targetKey("self")
@@ -257,13 +291,15 @@ class OAuthSecurityProjectionComponentTest {
         org.mockito.Mockito.doReturn(ready).when(redisson).getMap(eq(readyKey), eq(StringCodec.INSTANCE));
         when(ready.getAll(Set.of("epoch", "lastRevision", "status")))
                 .thenReturn(Map.of("epoch", "recovery-epoch-7", "lastRevision", "9", "status", "READY"));
-        when(stateRepository.findByRevisionAfter(REALM, 9L, 0L, 1)).thenReturn(List.of());
-        when(revocationRepository.findByProjectionStatus(REALM, "PENDING", 9L, 0L, 1)).thenReturn(List.of());
-        when(revocationRepository.findByProjectionStatus(REALM, "APPLIED", 9L, 0L, 1)).thenReturn(List.of());
+        var covered = OAuthSecurityStateBO.builder().id(12L).revision(9L).build();
+        when(stateRepository.findByRevisionAfter(eq(REALM), eq(9L), anyLong(), eq(1)))
+                .thenAnswer(call -> (long) call.getArgument(2) < 12L ? List.of(covered) : List.of());
+        when(revocationRepository.findByProjectionStatus(REALM, "PENDING", 9L, Long.MAX_VALUE, 1)).thenReturn(List.of());
+        when(revocationRepository.findByProjectionStatus(REALM, "APPLIED", 9L, Long.MAX_VALUE, 1)).thenReturn(List.of());
 
         assertThat(component.isIssuerReady(REALM)).isTrue();
 
-        when(stateRepository.findByRevisionAfter(REALM, 9L, 0L, 1)).thenReturn(List.of(
+        when(stateRepository.findByRevisionAfter(REALM, 9L, Long.MAX_VALUE, 1)).thenReturn(List.of(
                 OAuthSecurityStateBO.builder().id(12L).version(1L)
                         .targetType(OAuthSecurityTargetEnum.REALM).targetKey("self")
                         .generation(2L).enabled(true).revision(10L).reasonCode("ADMIN_REVOKE").build()));

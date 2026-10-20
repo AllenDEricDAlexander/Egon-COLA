@@ -19,7 +19,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarter
 @Slf4j
 @RequiredArgsConstructor
 @Validated
-public final class LegacyIssuerCutoverPolicy {
+public class LegacyIssuerCutoverPolicy {
 
     @Qualifier("rbac3RuntimeRedissonClient")
     private final RedissonClient redisson;

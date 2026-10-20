@@ -50,6 +50,12 @@ class EgonColaPostgreDdlRunnerTest {
         assertThatThrownBy(() -> manifest.scripts().clear()).isInstanceOf(UnsupportedOperationException.class);
         assertThatThrownBy(() -> new EgonColaDdlManifestBO("light", List.of(manifest.scripts().getLast(), manifest.scripts().getFirst())))
                 .isInstanceOf(IllegalArgumentException.class);
+        var baseline = new EgonColaDdlManifestBO("light", manifest.scripts(), manifest.scripts().getLast().version());
+        assertThat(mapper.readValue(mapper.writeValueAsString(baseline), EgonColaDdlManifestBO.class)).isEqualTo(baseline);
+        assertThat(baseline.startingIndex(null)).isEqualTo(1);
+        assertThat(baseline.startingIndex(manifest.scripts().getFirst().version())).isZero();
+        assertThatThrownBy(() -> new EgonColaDdlManifestBO("light", manifest.scripts(), "20990101_001"))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 
     @Test
@@ -117,6 +123,103 @@ class EgonColaPostgreDdlRunnerTest {
         var target = target("primary", jdbc.source(), manifest(1));
         assertThatThrownBy(() -> runner().run(List.of(target, target))).hasMessageContaining("DUPLICATE_DDL_TARGET");
         verifyNoInteractions(jdbc.sql());
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "EGON_MP_PG_DDL_TEST", matches = "true")
+    void explicitlyEnabledPostgreSqlRecordsBusinessOnlyBaselineAtomically() throws Exception {
+        PGSimpleDataSource source = new PGSimpleDataSource();
+        source.setURL(System.getenv("EGON_MP_PG_URL"));
+        source.setUser(System.getenv("EGON_MP_PG_USER"));
+        source.setPassword(System.getenv("EGON_MP_PG_PASSWORD"));
+        String schema = "egon_mp_" + UUID.randomUUID().toString().replace("-", "");
+        try (var connection = source.getConnection(); var statement = connection.createStatement()) {
+            statement.execute("CREATE SCHEMA " + schema);
+        }
+        source.setCurrentSchema(schema);
+        try {
+            byte[] content = "CREATE TABLE business_only (id bigint PRIMARY KEY);".getBytes(StandardCharsets.UTF_8);
+            var resources = spy(new PathMatchingResourcePatternResolver());
+            doReturn(new Resource[]{new ByteArrayResource(content)}).when(resources)
+                    .getResources("classpath*:ddl/business-only-test.sql");
+            var manifest = new EgonColaDdlManifestBO("tianquan-oauth", List.of(new ScriptBO("20260913_001",
+                    "ddl/business-only-test.sql", HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content)))));
+            var runner = new EgonColaPostgreDdlRunner(new ValidationUtils(VALIDATORS.getValidator()), resources,
+                    Clock.systemUTC(), Duration.ofSeconds(10), Duration.ofSeconds(60));
+            var target = new EgonColaDdlTargetBO("primary", schema, EgonColaDdlTargetBO.RoleEnum.SHARD, source, manifest, ROUTE);
+            assertThat(runner.run(List.of(target))).extracting(EgonColaDdlResult::status)
+                    .containsExactly(EgonColaDdlResult.StatusEnum.APPLIED);
+            assertThat(runner.run(List.of(target))).extracting(EgonColaDdlResult::status)
+                    .containsExactly(EgonColaDdlResult.StatusEnum.SKIPPED);
+            try (var connection = source.getConnection(); var statement = connection.createStatement();
+                 var rows = statement.executeQuery("SELECT count(*) FROM ddl_history WHERE tenant_id=0 AND type='SQL'")) {
+                assertThat(rows.next()).isTrue();
+                assertThat(rows.getInt(1)).isEqualTo(1);
+            }
+        } finally {
+            try (var connection = source.getConnection(); var statement = connection.createStatement()) {
+                statement.execute("DROP SCHEMA " + schema + " CASCADE");
+            }
+        }
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "EGON_MP_PG_DDL_TEST", matches = "true")
+    void explicitlyEnabledPostgreSqlSelectsFreshBaselineAndPreservesExistingHistory() throws Exception {
+        PGSimpleDataSource source = new PGSimpleDataSource();
+        source.setURL(System.getenv("EGON_MP_PG_URL"));
+        source.setUser(System.getenv("EGON_MP_PG_USER"));
+        source.setPassword(System.getenv("EGON_MP_PG_PASSWORD"));
+        for (boolean existing : List.of(false, true)) {
+            String schema = "egon_mp_" + UUID.randomUUID().toString().replace("-", "");
+            try (var connection = source.getConnection(); var statement = connection.createStatement()) {
+                statement.execute("CREATE SCHEMA " + schema);
+            }
+            source.setCurrentSchema(schema);
+            try {
+                if (existing) {
+                    runner().run(List.of(new EgonColaDdlTargetBO("primary", schema,
+                            EgonColaDdlTargetBO.RoleEnum.SHARD, source, manifest(1), ROUTE)));
+                }
+                byte[] baselineSql = ("CREATE TABLE IF NOT EXISTS runner_test (id bigint PRIMARY KEY);"
+                        + "ALTER TABLE runner_test ADD COLUMN IF NOT EXISTS baseline_marker boolean NOT NULL DEFAULT true;")
+                        .getBytes(StandardCharsets.UTF_8);
+                byte[] futureSql = "ALTER TABLE runner_test ADD COLUMN future_value varchar(64);".getBytes(StandardCharsets.UTF_8);
+                var resources = spy(new PathMatchingResourcePatternResolver());
+                doReturn(new Resource[]{new ByteArrayResource(baselineSql)}).when(resources).getResources("classpath*:ddl/fresh-baseline-test.sql");
+                doReturn(new Resource[]{new ByteArrayResource(futureSql)}).when(resources).getResources("classpath*:ddl/future-test.sql");
+                var scripts = List.of(manifest(1).scripts().getFirst(),
+                        new ScriptBO("20261018_001", "ddl/fresh-baseline-test.sql",
+                                HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(baselineSql))),
+                        new ScriptBO("20261019_001", "ddl/future-test.sql",
+                                HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(futureSql))));
+                var manifest = new EgonColaDdlManifestBO("light", scripts, "20261018_001");
+                var runner = new EgonColaPostgreDdlRunner(new ValidationUtils(VALIDATORS.getValidator()), resources,
+                        Clock.systemUTC(), Duration.ofSeconds(10), Duration.ofSeconds(60));
+                var target = new EgonColaDdlTargetBO("primary", schema, EgonColaDdlTargetBO.RoleEnum.SHARD, source, manifest, ROUTE);
+                var applied = runner.run(List.of(target));
+                assertThat(applied).hasSize(existing ? 3 : 2);
+                assertThat(applied).filteredOn(result -> result.status() == EgonColaDdlResult.StatusEnum.APPLIED)
+                        .extracting(EgonColaDdlResult::version).containsExactly("20261018_001", "20261019_001");
+                assertThat(runner.run(List.of(target))).hasSize(existing ? 3 : 2)
+                        .allSatisfy(result -> assertThat(result.status()).isEqualTo(EgonColaDdlResult.StatusEnum.SKIPPED));
+                try (var connection = source.getConnection(); var statement = connection.createStatement();
+                     var rows = statement.executeQuery("SELECT version FROM ddl_history ORDER BY version")) {
+                    var installed = new java.util.ArrayList<String>();
+                    while (rows.next()) { installed.add(rows.getString(1)); }
+                    assertThat(installed).containsExactlyElementsOf(scripts.subList(existing ? 0 : 1, scripts.size())
+                            .stream().map(ScriptBO::version).toList());
+                }
+                try (var connection = source.getConnection(); var statement = connection.createStatement()) {
+                    statement.executeUpdate("UPDATE ddl_history SET script='foreign.sql' WHERE version='20261018_001'");
+                }
+                assertThatThrownBy(() -> runner.run(List.of(target))).hasMessageContaining("MANIFEST_PREFIX_MISMATCH");
+            } finally {
+                try (var connection = source.getConnection(); var statement = connection.createStatement()) {
+                    statement.execute("DROP SCHEMA " + schema + " CASCADE");
+                }
+            }
+        }
     }
 
     @Test

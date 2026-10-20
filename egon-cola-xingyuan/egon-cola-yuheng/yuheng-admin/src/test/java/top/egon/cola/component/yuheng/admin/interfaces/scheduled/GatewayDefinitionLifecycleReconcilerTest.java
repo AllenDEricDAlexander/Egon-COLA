@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.reporting.controller.scheduled;
 
+import static top.egon.cola.component.yuheng.admin.config.GatewayPersistenceTestSupport.persistenceContext;
+
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
@@ -34,7 +36,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
     }
 
     @Test
-    void reconcilesOnlyOnlineProviderDefinitionSetsAndAuditsChanges() {
+    void reconcilesOnlyOnlineProviderDefinitionSetsAndAuditsChanges() throws Exception {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayApplicationRepository applications =
                 mock(GatewayApplicationRepository.class);
@@ -90,7 +92,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         audits,
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC));
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        persistenceContext());
 
         reconciler.reconcile();
 
@@ -102,7 +105,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
     }
 
     @Test
-    void staleProviderProjectionCannotRetireDefinitions() {
+    void staleProviderProjectionCannotRetireDefinitions() throws Exception {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayApplicationRepository applications =
                 mock(GatewayApplicationRepository.class);
@@ -141,7 +144,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         mock(TransactionTemplate.class),
-                        Clock.fixed(now, ZoneOffset.UTC));
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        persistenceContext());
 
         reconciler.reconcile();
 
@@ -149,7 +153,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
     }
 
     @Test
-    void reconcilesEmptyActiveSetWhenLastProviderDisappears() {
+    void reconcilesEmptyActiveSetWhenLastProviderDisappears() throws Exception {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayApplicationRepository applications =
                 mock(GatewayApplicationRepository.class);
@@ -203,7 +207,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC));
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        persistenceContext());
 
         reconciler.reconcile();
 
@@ -211,7 +216,7 @@ class GatewayDefinitionLifecycleReconcilerTest {
     }
 
     @Test
-    void unionsValidOpenApiAggregateSetsWithDdcProviderSets() {
+    void unionsValidOpenApiAggregateSetsWithDdcProviderSets() throws Exception {
         Instant now = Instant.parse("2026-07-25T08:00:00Z");
         GatewayApplicationRepository applications =
                 mock(GatewayApplicationRepository.class);
@@ -268,7 +273,8 @@ class GatewayDefinitionLifecycleReconcilerTest {
                         lifecycle,
                         mock(GatewayAuditLogRepository.class),
                         transactions,
-                        Clock.fixed(now, ZoneOffset.UTC));
+                        Clock.fixed(now, ZoneOffset.UTC),
+                        persistenceContext());
 
         reconciler.reconcile();
 

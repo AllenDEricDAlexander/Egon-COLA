@@ -632,7 +632,7 @@ public class GatewayReleaseService {
                             actor.actorId(),
                             clock.instant()
                     );
-                    drafts.flush();
+                    drafts.save(draft);
                 }
             });
         } catch (RuntimeException failure) {

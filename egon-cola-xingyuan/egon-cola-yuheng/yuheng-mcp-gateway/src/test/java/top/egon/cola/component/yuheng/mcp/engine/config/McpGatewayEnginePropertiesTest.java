@@ -27,6 +27,7 @@ class McpGatewayEnginePropertiesTest {
                     assertEquals(18085, properties.managementPort());
                     assertEquals("mcp-node-1", properties.nodeId());
                     assertEquals(Duration.ofSeconds(5), properties.outbound().requestTimeout());
+                    assertNull(properties.outbound().httpTls());
                     assertTrue(McpGatewayEngineProperties.class.isRecord());
                     assertEquals("data/mcp-node-1", properties.dataDirectory());
                 });
@@ -69,6 +70,24 @@ class McpGatewayEnginePropertiesTest {
                 .withPropertyValues(PREFIX + "listener.tls.enabled=true",
                         PREFIX + "listener.tls.development-plaintext=false")
                 .run(context -> assertNotNull(context.getStartupFailure()));
+    }
+
+    @Test
+    void bindsOptionalHttpUpstreamIdentityWithoutChangingRpcTransport() {
+        runner.withPropertyValues(validValues()).withPropertyValues(
+                PREFIX + "outbound.http-tls.enabled=true",
+                PREFIX + "outbound.http-tls.certificate-chain-path=certificate.pem",
+                PREFIX + "outbound.http-tls.private-key-path=private-key.pem",
+                PREFIX + "outbound.http-tls.trust-certificate-collection-path=ca.pem",
+                PREFIX + "outbound.http-tls.client-certificate-required=true")
+                .run(context -> {
+                    assertNull(context.getStartupFailure());
+                    var outbound = context.getBean(McpGatewayEngineProperties.class).outbound();
+                    assertTrue(outbound.httpTls().enabled());
+                    assertEquals("certificate.pem", outbound.httpTls().certificateChainPath());
+                    assertEquals("ca.pem", outbound.httpTls().trustCertificateCollectionPath());
+                    assertTrue(outbound.rpcTls().developmentPlaintext());
+                });
     }
 
     private String[] validValues() {

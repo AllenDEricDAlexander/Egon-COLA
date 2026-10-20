@@ -96,7 +96,7 @@ public class JpaTenantApplicationRepository implements ApplicationResourceReposi
         TenantApplicationPO entitlement = new TenantApplicationPO(
                 SnowflakeIdGenerator.nextLongId(), tenant, application.getId(),
                 TenantApplicationStatusEnum.ACTIVE, now, null,
-                "Tianshu", catalog.ddcApplicationId(), null, null, actorId, now);
+                "MANUAL", catalog.ddcApplicationId(), null, null, actorId, now);
         entityManager.persist(entitlement);
         return toAuthorizationScope(entitlement, application);
     }

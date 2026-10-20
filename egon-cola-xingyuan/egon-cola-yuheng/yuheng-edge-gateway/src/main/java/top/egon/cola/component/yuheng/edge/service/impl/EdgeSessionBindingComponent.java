@@ -146,7 +146,7 @@ public class EdgeSessionBindingComponent {
             """;
 
     @Qualifier("redisson") private final RedissonClient redisson;
-    @Qualifier("clientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
+    @Qualifier("reactiveClientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
     @Qualifier("edgeOAuthProperties") private final EdgeOAuthProperties properties;
     @Qualifier("edgeTokenCipher") private final EdgeTokenCipher cipher;
     @Qualifier("jacksonObjectMapper") private final ObjectMapper mapper;
@@ -190,8 +190,8 @@ public class EdgeSessionBindingComponent {
                 }
                 var registration = registrations.findByRegistrationId(id).block(Duration.ofSeconds(5));
                 if (registration == null || !issuer.equals(registration.getProviderDetails().getIssuerUri())
-                        || registration.getAuthorizationGrantType() != AuthorizationGrantType.AUTHORIZATION_CODE
-                        || registration.getClientAuthenticationMethod() != ClientAuthenticationMethod.CLIENT_SECRET_BASIC
+                        || !AuthorizationGrantType.AUTHORIZATION_CODE.equals(registration.getAuthorizationGrantType())
+                        || !ClientAuthenticationMethod.CLIENT_SECRET_BASIC.equals(registration.getClientAuthenticationMethod())
                         || registration.getClientSecret() == null || registration.getClientSecret().isBlank()
                         || !clientIds.add(registration.getClientId()) || !resource.getScopes().equals(registration.getScopes())
                         || !(issuer + "/oauth2/authorize").equals(registration.getProviderDetails().getAuthorizationUri())

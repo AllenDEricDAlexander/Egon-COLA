@@ -40,32 +40,42 @@
 
     <select id="selectActiveById" resultMap="OAuthClientPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_client
+        FROM tianquan_oauth.oauth_client
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthClientPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM tianquan_oauth.oauth_client
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
     </select>
 
     <select id="selectByClientId" resultMap="OAuthClientPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_client
+        FROM tianquan_oauth.oauth_client
         WHERE tenant_id = #{tenantId} AND client_id = #{clientId} AND deleted_at IS NULL
     </select>
 
     <select id="selectByClientIdForUpdate" resultMap="OAuthClientPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_client
+        FROM tianquan_oauth.oauth_client
         WHERE tenant_id = #{tenantId} AND client_id = #{clientId} AND deleted_at IS NULL
         FOR UPDATE
     </select>
 
     <select id="selectDirectory" resultMap="OAuthClientPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_client
+        FROM tianquan_oauth.oauth_client
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
         ORDER BY client_id ASC
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_client
+        UPDATE tianquan_oauth.oauth_client
         SET client_name = #{po.clientName},
             status = #{po.status},
             secret_hash = #{po.secretHash},
@@ -87,7 +97,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_client
+        UPDATE tianquan_oauth.oauth_client
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{et.updateUserId},

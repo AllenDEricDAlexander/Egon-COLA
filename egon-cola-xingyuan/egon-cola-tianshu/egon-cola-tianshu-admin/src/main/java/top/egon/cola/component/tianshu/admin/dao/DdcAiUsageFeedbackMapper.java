@@ -103,13 +103,6 @@ public interface DdcAiUsageFeedbackMapper extends EgonColaMapper<DdcAiUsageFeedb
             @Param("limit") @Min(value = 1, groups = EgonColaModelValidationGroups.Query.class)
             @Max(value = 5000, groups = EgonColaModelValidationGroups.Query.class) int limit);
 
-    @Validated(EgonColaModelValidationGroups.Query.class)
-    int softDeleteByIds(
-            @Param("tenantId") @NotNull(groups = EgonColaModelValidationGroups.Query.class) @Positive(groups = EgonColaModelValidationGroups.Query.class) Long tenantId,
-            @Param("ids") @NotEmpty(groups = EgonColaModelValidationGroups.Query.class) Collection<@Positive(groups = EgonColaModelValidationGroups.Query.class) Long> ids,
-            @Param("updateTime") @NotNull(groups = EgonColaModelValidationGroups.Query.class) Instant updateTime,
-            @Param("updateUserId") @NotNull(groups = EgonColaModelValidationGroups.Query.class) String updateUserId);
-
     private static Long requireInternalId(Serializable id) {
         if (!(id instanceof Long value) || value <= 0) throw new IllegalArgumentException("ID_MUST_BE_POSITIVE_LONG");
         return value;

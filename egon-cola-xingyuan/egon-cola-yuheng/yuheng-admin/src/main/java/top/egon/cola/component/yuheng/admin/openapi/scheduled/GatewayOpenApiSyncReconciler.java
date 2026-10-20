@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.openapi.scheduled;
 
+import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent;
+
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -30,6 +32,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @ConditionalOnBean(GatewayOpenApiSyncService.class)
 public class GatewayOpenApiSyncReconciler {
 
+    private final GatewayPersistenceContextComponent persistenceContext;
+
     private final GatewayOpenApiSyncService service;
 
     private final GatewayAdminOpenApiProperties properties;
@@ -40,9 +44,11 @@ public class GatewayOpenApiSyncReconciler {
     @Autowired
     public GatewayOpenApiSyncReconciler(
             GatewayOpenApiSyncService service,
-            GatewayAdminOpenApiProperties properties) {
+            GatewayAdminOpenApiProperties properties,
+            GatewayPersistenceContextComponent persistenceContext) {
         this.service = Objects.requireNonNull(service, "service");
         this.properties = Objects.requireNonNull(properties, "properties");
+        this.persistenceContext = Objects.requireNonNull(persistenceContext, "persistenceContext");
     }
 
     /**
@@ -61,8 +67,11 @@ public class GatewayOpenApiSyncReconciler {
         }
         try {
             properties.validate();
-            service.reconcile();
-        } catch (RuntimeException failure) {
+            persistenceContext.call(null, () -> {
+                service.reconcile();
+                return null;
+            });
+        } catch (Exception failure) {
             log.warn("OpenAPI synchronization tick failed safely");
         } finally {
             running.set(false);

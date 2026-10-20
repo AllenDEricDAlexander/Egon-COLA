@@ -203,7 +203,7 @@ public class EdgeSecurityConfiguration {
 
     @Bean(name = "edgeDefaultAuthorizedClientManager")
     public DefaultReactiveOAuth2AuthorizedClientManager edgeDefaultAuthorizedClientManager(
-            @Qualifier("clientRegistrationRepository") ReactiveClientRegistrationRepository registrations,
+            @Qualifier("reactiveClientRegistrationRepository") ReactiveClientRegistrationRepository registrations,
             @Qualifier("edgeAuthorizedClientRepository") ServerOAuth2AuthorizedClientRepository clients) {
         DefaultReactiveOAuth2AuthorizedClientManager delegate = new DefaultReactiveOAuth2AuthorizedClientManager(registrations, clients);
         delegate.setAuthorizedClientProvider(ReactiveOAuth2AuthorizedClientProviderBuilder.builder().authorizationCode().refreshToken().build());
@@ -219,7 +219,7 @@ public class EdgeSecurityConfiguration {
     }
 
     public ReactiveOAuth2AuthorizedClientManager reactiveOAuth2AuthorizedClientManager(
-            @Qualifier("clientRegistrationRepository")
+            @Qualifier("reactiveClientRegistrationRepository")
             ReactiveClientRegistrationRepository registrations,
             @Qualifier("edgeAuthorizedClientRepository") ServerOAuth2AuthorizedClientRepository repository,
             @Qualifier("redisson") RedissonClient redisson,
@@ -232,7 +232,7 @@ public class EdgeSecurityConfiguration {
     @org.springframework.context.annotation.Primary
     public ReactiveOAuth2AuthorizedClientManager configuredEdgeAuthorizedClientManager(
             @Qualifier("edgeDefaultAuthorizedClientManager") DefaultReactiveOAuth2AuthorizedClientManager delegate,
-            @Qualifier("clientRegistrationRepository") ReactiveClientRegistrationRepository registrations,
+            @Qualifier("reactiveClientRegistrationRepository") ReactiveClientRegistrationRepository registrations,
             @Qualifier("redissonReactiveClient") org.redisson.api.RedissonReactiveClient redisson,
             @Qualifier("edgeSessionBindingComponent") EdgeSessionBindingComponent bindings,
             @Qualifier("edgeAuthorizedClientRepository") EdgeAuthorizedClientRepository clients) {
@@ -321,7 +321,7 @@ public class EdgeSecurityConfiguration {
     @Order(Ordered.LOWEST_PRECEDENCE)
     public SecurityWebFilterChain edgeBrowserSecurityWebFilterChain(
             ServerHttpSecurity http,
-            @Qualifier("clientRegistrationRepository") ReactiveClientRegistrationRepository registrations,
+            @Qualifier("reactiveClientRegistrationRepository") ReactiveClientRegistrationRepository registrations,
             @Qualifier("edgeAuthorizedClientRepository") ServerOAuth2AuthorizedClientRepository clients,
             @Qualifier("edgeCsrfTokenRepository") ServerCsrfTokenRepository csrfTokens,
             @Qualifier("edgeClock") Clock clock,
@@ -362,7 +362,7 @@ public class EdgeSecurityConfiguration {
                 .addFilterAt(nativeTransactionFilter(bindings, requests, mapper, (EdgeAuthorizedClientRepository) clients), SecurityWebFiltersOrder.FIRST)
                 .requestCache(cache -> cache.requestCache(NoOpServerRequestCache.getInstance()))
                 .authorizeExchange(authorize -> authorize
-                        .pathMatchers("/bff/csrf", "/actuator/health").permitAll()
+                        .pathMatchers("/bff/csrf", "/actuator/health", "/actuator/health/**").permitAll()
                         .pathMatchers("/bff/session", "/bff/logout").authenticated()
                         .pathMatchers("/oauth2/authorization/**", "/login/oauth2/code/**", "/tenants/**", "/platform/**").permitAll()
                         .anyExchange().authenticated())

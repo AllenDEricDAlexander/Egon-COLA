@@ -1,10 +1,5 @@
 package top.egon.cola.platform.tianquan.shoubing.admin.token.repository.impl;
 
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Max;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
 import java.time.Clock;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -59,9 +54,9 @@ public class OAuthSecurityStateRepositoryImpl extends EgonColaRepository<OAuthSe
     @Override
     @Transactional(readOnly = true)
     public Optional<OAuthSecurityStateBO> findByTarget(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotNull OAuthSecurityTargetEnum targetType,
-            @NotNull String targetKey) {
+            TrustedRealmBO trustedRealm,
+            OAuthSecurityTargetEnum targetType,
+            String targetKey) {
         String key = requireStateTarget(targetType, targetKey);
         return withTrustedStoragePartition(trustedRealm, tenantId -> Optional.ofNullable(
                         baseMapper.selectByTarget(tenantId, targetType, key))
@@ -71,9 +66,9 @@ public class OAuthSecurityStateRepositoryImpl extends EgonColaRepository<OAuthSe
     @Override
     @Transactional
     public Optional<OAuthSecurityStateBO> findByTargetForUpdate(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotNull OAuthSecurityTargetEnum targetType,
-            @NotNull String targetKey) {
+            TrustedRealmBO trustedRealm,
+            OAuthSecurityTargetEnum targetType,
+            String targetKey) {
         String key = requireStateTarget(targetType, targetKey);
         return withTrustedStoragePartition(trustedRealm, tenantId -> Optional.ofNullable(
                         baseMapper.selectByTargetForUpdate(tenantId, targetType, key))
@@ -83,10 +78,10 @@ public class OAuthSecurityStateRepositoryImpl extends EgonColaRepository<OAuthSe
     @Override
     @Transactional(readOnly = true)
     public List<OAuthSecurityStateBO> findByRevisionAfter(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @PositiveOrZero long afterRevision,
-            @PositiveOrZero long afterId,
-            @Min(1) @Max(500) int limit) {
+            TrustedRealmBO trustedRealm,
+            long afterRevision,
+            long afterId,
+            int limit) {
         if (limit < 1 || limit > 500) {
             throw new IllegalArgumentException("OAUTH_SECURITY_STATE_QUERY_LIMIT_INVALID");
         }
@@ -99,9 +94,9 @@ public class OAuthSecurityStateRepositoryImpl extends EgonColaRepository<OAuthSe
     @Override
     @Transactional
     public OAuthSecurityStateBO save(
-            @NotNull @Valid TrustedRealmBO trustedRealm,
-            @NotNull @Valid OAuthSecurityStateBO state,
-            @PositiveOrZero long expectedVersion) {
+            TrustedRealmBO trustedRealm,
+            OAuthSecurityStateBO state,
+            long expectedVersion) {
         Objects.requireNonNull(state, "state");
         String targetKey = requireStateTarget(state.getTargetType(), state.getTargetKey());
         return withTrustedStoragePartition(trustedRealm, tenantId -> {

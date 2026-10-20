@@ -53,6 +53,15 @@ import top.egon.cola.platform.tianquan.shoubing.contract.IdpPrincipal;
 @EnableConfigurationProperties(Rbac3StarterProperties.class)
 @Import(Rbac3RuntimeRedissonConfiguration.class)
 public class LlmSecurityConfiguration {
+
+    /** Reuses the host primary connection under Common cache's explicit integration name. */
+    @Bean(name = "redissonClient", destroyMethod = "")
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean(name = "redissonClient")
+    @org.springframework.boot.autoconfigure.condition.ConditionalOnBean(name = "rbac3RuntimeRedissonClient")
+    org.redisson.api.RedissonClient applicationCacheRedissonClient(
+            @Qualifier("rbac3RuntimeRedissonClient") org.redisson.api.RedissonClient primary) {
+        return primary;
+    }
     private static final String BUSINESS_ENTERED = LlmSecurityConfiguration.class.getName() + ".businessEntered";
     private static final Map<String, LlmProtocolEnum> PROTOCOLS = Map.of(
             "/v1/models", LlmProtocolEnum.OPENAI_CHAT, "/v1/chat/completions", LlmProtocolEnum.OPENAI_CHAT,
@@ -135,8 +144,11 @@ public class LlmSecurityConfiguration {
             throw new IllegalStateException("LLM_SECURITY_OBSERVATION_REQUIRED");
         }
         properties.validate();
+        boolean localRedis = usage.isAllowLocalPlaintext()
+                && java.util.Arrays.asList(environment.getActiveProfiles()).contains("local")
+                && "local".equals(environment.getProperty("DEPLOYMENT_ENV"));
         if (!"https".equals(properties.getResourceUri().getScheme()) || properties.getTrustedIssuers().isEmpty()
-                || !properties.getRevocation().getPrimaryEndpoint().startsWith("rediss://")) {
+                || (!properties.getRevocation().getPrimaryEndpoint().startsWith("rediss://") && !localRedis)) {
             throw new IllegalStateException("LLM_SECURITY_TRANSPORT_REQUIRED");
         }
         return new Object();

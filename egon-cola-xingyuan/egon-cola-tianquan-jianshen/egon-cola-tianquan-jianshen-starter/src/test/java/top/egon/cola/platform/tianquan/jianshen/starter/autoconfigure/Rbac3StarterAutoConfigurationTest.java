@@ -32,6 +32,26 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class Rbac3StarterAutoConfigurationTest {
     @Test
+    void serviceTokenClientSelectsItsIdentityPropertiesWhenTianshuAlsoBindsTheSameType() {
+        runner.withPropertyValues("egon.cola.platform.tianquan.jianshen.enabled=true",
+                        "egon.cola.platform.tianquan.jianshen.authorization.service-token.enabled=true",
+                        "egon.cola.platform.tianquan.jianshen.authorization.service-token.resource-uri=https://api.example/permission",
+                        "egon.cola.platform.tianquan.jianshen.authorization.service-token.scopes=iam:authorization:read",
+                        "egon.cola.platform.tianquan.jianshen.authorization.endpoint=https://api.example/authorization")
+                .withBean(ObjectMapper.class, ObjectMapper::new)
+                .withBean(SensitiveStrategyRegistry.class, SensitiveStrategyRegistry::defaults)
+                .withBean("idpServiceOAuth2Client", top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client.class,
+                        () -> mock(top.egon.cola.platform.tianquan.shoubing.starter.client.IdpServiceOAuth2Client.class))
+                .withBean("idpStarterProperties", top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.class,
+                        top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties::new)
+                .withBean("egon.cola.platform.tianquan.shoubing-top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties",
+                        top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.class,
+                        top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties::new)
+                .run(context -> assertThat(context).hasNotFailed().hasSingleBean(
+                        top.egon.cola.platform.tianquan.jianshen.starter.client.Rbac3AuthorizationClient.class));
+    }
+
+    @Test
     void allHostProfilesBindTheReviewedPermissionKeysWithoutLosingColons() throws Exception {
         var root = java.nio.file.Path.of("").toAbsolutePath();
         while (root != null && !java.nio.file.Files.isDirectory(root.resolve("docs/egon/plan"))) { root = root.getParent(); }

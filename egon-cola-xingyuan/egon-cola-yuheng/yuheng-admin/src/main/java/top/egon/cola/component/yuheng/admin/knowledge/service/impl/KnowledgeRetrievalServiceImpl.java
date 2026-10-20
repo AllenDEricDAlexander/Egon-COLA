@@ -124,7 +124,7 @@ public class KnowledgeRetrievalServiceImpl implements KnowledgeRetrievalService 
     @Qualifier("knowledgeRepository")
     private final KnowledgeRepository knowledgeRepository;
 
-    @Qualifier("knowledgeModelClientService")
+    @Qualifier("knowledgeModelClientServiceImpl")
     private final KnowledgeModelClientService knowledgeModelClientService;
 
     @Qualifier("knowledgeSearchStrategyRegistry")

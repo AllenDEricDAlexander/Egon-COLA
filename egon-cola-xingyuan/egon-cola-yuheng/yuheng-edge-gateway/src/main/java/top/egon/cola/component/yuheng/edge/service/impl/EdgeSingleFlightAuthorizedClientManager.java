@@ -27,7 +27,7 @@ public class EdgeSingleFlightAuthorizedClientManager implements ReactiveOAuth2Au
     private static final String TEMPORARILY_UNAVAILABLE = "temporarily_unavailable";
 
     @Qualifier("edgeDefaultAuthorizedClientManager") private final ReactiveOAuth2AuthorizedClientManager delegate;
-    @Qualifier("clientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
+    @Qualifier("reactiveClientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
     @Qualifier("redissonReactiveClient") private final RedissonReactiveClient redisson;
     @Qualifier("edgeOAuthProperties") private final EdgeOAuthProperties properties;
     @Qualifier("edgeSessionBindingComponent") private final EdgeSessionBindingComponent bindings;

@@ -35,7 +35,7 @@ import top.egon.cola.platform.tianquan.shoubing.starter.security.domain.Verified
 @Slf4j
 @RequiredArgsConstructor
 @Validated
-public final class RedisOAuthRevocationReader implements OAuthRevocationReader {
+public class RedisOAuthRevocationReader implements OAuthRevocationReader {
 
     private static final String REDIS_PREFIX = "egon:oauth:security:v2:{%s}:";
 

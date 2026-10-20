@@ -49,6 +49,8 @@ class Rbac3MigrationContractTest {
             "db/migration/V13__replace_role_permissions_and_add_resource_api_bindings.sql";
     private static final String CURRENT_BASELINE =
             "db/migration/B14__create_current_rbac3_schema.sql";
+    private static final String WORKER_CLAIM_MIGRATION =
+            "db/migration/V15__encapsulate_skip_locked_worker_claims.sql";
     private static final Pattern TABLE_PATTERN = Pattern.compile(
             "create\\s+table\\s+(rbac3_[a-z0-9_]+)\\s*\\((.*?)\\);",
             Pattern.CASE_INSENSITIVE | Pattern.DOTALL
@@ -145,7 +147,7 @@ class Rbac3MigrationContractTest {
                 BUILTIN_AUTHORIZATION_MIGRATION,
                 BUILTIN_BUSINESS_ACCESS_MIGRATION,
                 TIANQUAN_JIANSHEN_ABOUT_PERMISSION_MIGRATION,
-                RESOURCE_GRANTS_MIGRATION, CURRENT_BASELINE);
+                RESOURCE_GRANTS_MIGRATION, CURRENT_BASELINE, WORKER_CLAIM_MIGRATION);
         assertThat(resourceSql(STRONG_AUTH_MIGRATION))
                 .contains("add column strong_authenticated_at timestamptz")
                 .contains("ck_rbac3_session_strong_authentication_time");

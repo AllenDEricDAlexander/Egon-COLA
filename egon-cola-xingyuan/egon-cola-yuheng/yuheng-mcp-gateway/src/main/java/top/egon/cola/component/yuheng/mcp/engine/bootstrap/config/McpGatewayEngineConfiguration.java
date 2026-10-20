@@ -327,6 +327,15 @@ public class McpGatewayEngineConfiguration {
         return Redisson.create(config);
     }
 
+    /** Reuses the host connection under Common cache's explicit integration name. */
+    @Bean(name = "redissonClient", destroyMethod = "")
+    @ConditionalOnMissingBean(name = "redissonClient")
+    @ConditionalOnBean(name = "gatewayMcpRedissonClient")
+    RedissonClient applicationCacheRedissonClient(
+            @Qualifier("gatewayMcpRedissonClient") RedissonClient client) {
+        return client;
+    }
+
     /**
      * 中文说明：执行 网关MCP会话存储 操作；该方法是 {@code McpGatewayEngineConfiguration} 的调用入口，负责根据输入完成对应的运行时、管理面或协议处理。
      * English summary: Executes the gateway mcp session store operation; this method is the invocation entry point on {@code McpGatewayEngineConfiguration} and performs the corresponding runtime, management, or protocol work.
@@ -373,7 +382,7 @@ public class McpGatewayEngineConfiguration {
      * @param batchLimit 参数 单次清理扫描最大行数；parameter the maximum rows one sweep touches。
      * @return 返回 网关MCP运行时任务存储 的处理结果；returns the result of the operation.
      */
-    @Bean("gatewayMcpRuntimeTaskStore")
+    @Bean(name = {"gatewayMcpRuntimeTaskStore", "mcpRuntimeTaskStore"})
     public MpMcpRuntimeTaskStore gatewayMcpRuntimeTaskStore(
             @Qualifier("mcpTaskPersistenceRepository")
             McpTaskPersistenceRepository taskPersistenceRepository,
@@ -461,7 +470,7 @@ public class McpGatewayEngineConfiguration {
             Duration renewalSkew,
             @Qualifier("gatewayClock") Clock gatewayClock,
             IdpServiceOAuth2Client serviceClient,
-            IdpStarterProperties idpProperties) {
+            @Qualifier("idpStarterProperties") IdpStarterProperties idpProperties) {
         return new HttpMcpTaskServiceTokenSupplier(
                 serviceClient,
                 idpProperties,
@@ -996,7 +1005,8 @@ public class McpGatewayEngineConfiguration {
     public ReactorNettyHttpUpstreamAdapter gatewayHttpUpstreamAdapter(McpGatewayEngineProperties properties) {
         var outbound = properties.outbound();
         return new ReactorNettyHttpUpstreamAdapter(
-                outbound.maxConnections(), outbound.pendingAcquireMaxCount(), outbound.idleTimeout());
+                outbound.maxConnections(), outbound.pendingAcquireMaxCount(), outbound.idleTimeout(),
+                outbound.httpTls() == null ? null : transportSecurity(outbound.httpTls()));
     }
 
     @Bean(name = "gatewayRpcProviderChannels", destroyMethod = "close")

@@ -1469,7 +1469,7 @@ public class McpControlPlaneService {
             Map<String, Object> summary,
             Instant now) {
         draft.touch(required(changeReason, "changeReason"), actor.actorId(), now);
-        drafts.flush();
+        draft = drafts.save(draft);
         McpMutationResultVO result = new McpMutationResultVO(
                 draft.getRevision(),
                 resourceId,

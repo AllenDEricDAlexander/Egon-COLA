@@ -34,7 +34,7 @@
 
     <select id="selectDirectory" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
         ORDER BY resource_server_id ASC, id ASC
         LIMIT #{limit}
@@ -42,14 +42,14 @@
 
     <select id="selectByResourceServerId" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND resource_server_id = #{resourceServerId}
           AND deleted_at IS NULL
     </select>
 
     <select id="selectByResourceServerIdForUpdate" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND resource_server_id = #{resourceServerId}
           AND deleted_at IS NULL
         FOR UPDATE
@@ -57,27 +57,27 @@
 
     <select id="selectByResourceUri" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND resource_uri = #{resourceUri} AND deleted_at IS NULL
     </select>
 
     <select id="selectBySource" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND app_code = #{appCode}
           AND environment = #{environment} AND deleted_at IS NULL
     </select>
 
     <select id="selectByManagementClientPk" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND management_client_pk = #{managementClientPk}
           AND deleted_at IS NULL
     </select>
 
     <select id="selectByBizCodeAndEnvironmentAndAppCodeIn" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND biz_code = #{bizCode} AND environment = #{environment}
           AND deleted_at IS NULL
           AND app_code IN
@@ -90,13 +90,13 @@
 
     <select id="selectActiveById" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthResourcePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_resource
+        FROM tianquan_oauth.oauth_resource
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -105,7 +105,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_resource
+        UPDATE tianquan_oauth.oauth_resource
         SET display_name = #{po.displayName},
             rbac_application_code = #{po.rbacApplicationCode},
             entry_permission_code = #{po.entryPermissionCode},
@@ -128,7 +128,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_resource
+        UPDATE tianquan_oauth.oauth_resource
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{po.updateUserId},

@@ -421,11 +421,11 @@ class DdcAiPersistenceContractTest {
         Map<String, Object> treeParameters = Map.of("tenantId", 41L, "resourceId", 83L);
         String draftTreeSql = mappedSql(configuration, BASE + "dao.DdcAiDraftNodeMapper.selectTree", treeParameters);
         assertThat(draftTreeSql).contains("tenant_id = ?", "resource_id = ?", "deleted_at is null")
-                .contains("order by n.path collate \"c\"");
+                .contains("order by n.path, n.id");
         Map<String, Object> versionTreeParameters = Map.of("tenantId", 41L, "versionId", 97L);
         String versionTreeSql = mappedSql(configuration, BASE + "dao.DdcAiVersionNodeMapper.selectTree", versionTreeParameters);
         assertThat(versionTreeSql).contains("tenant_id = ?", "version_id = ?", "deleted_at is null",
-                "order by n.path collate \"c\"");
+                "order by n.path, n.id");
 
         Map<String, Object> versionPageParameters = Map.of("tenantId", 41L, "resourceId", 83L, "offset", 0L, "limit", 10);
         String versionPageSql = mappedSql(configuration, BASE + "dao.DdcAiVersionMapper.selectPage", versionPageParameters);

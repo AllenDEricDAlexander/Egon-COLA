@@ -119,6 +119,22 @@ import static org.mockito.Mockito.when;
 
 class OAuthOidcProtocolContractTest {
 
+    @Test
+    void loginRequestCachePreservesTheExactProtocolQueryWithoutAnInternalContinueParameter() {
+        var cache = new AuthorizationServerConfiguration().oauthAuthorizationRequestCache();
+        var request = new org.springframework.mock.web.MockHttpServletRequest("GET", "/tenants/1001/oauth2/authorize");
+        request.setScheme("https");
+        request.setServerName("issuer.example");
+        request.setServerPort(443);
+        request.setQueryString("response_type=code&client_id=controlled-client&state=controlled-state");
+        var response = new org.springframework.mock.web.MockHttpServletResponse();
+
+        cache.saveRequest(request, response);
+
+        assertEquals("https://issuer.example/tenants/1001/oauth2/authorize?response_type=code&client_id=controlled-client&state=controlled-state",
+                cache.getRequest(request, response).getRedirectUrl());
+    }
+
     private static final Instant NOW = Instant.parse("2026-10-08T08:00:00Z");
 
     @Test
@@ -572,7 +588,7 @@ class OAuthOidcProtocolContractTest {
     }
 
     @Test
-    void derivesServiceCredentialIdentityFromTheLockedClientVersion() {
+    void authorizesServiceFromGrantsWithEmptyUserResourceListAndLockedCredentialVersion() {
         SnowflakeIdGenerator.initialize(0L, Duration.ofMillis(5));
         TrustedRealmBO realm = trustedTenant();
         URI targetUri = URI.create("https://api.example.test/orders");
@@ -580,24 +596,27 @@ class OAuthOidcProtocolContractTest {
         OAuthClientRepository clients = mock(OAuthClientRepository.class);
         OAuthRealmRepository realms = mock(OAuthRealmRepository.class);
         OAuthSecurityProjectionComponent projection = mock(OAuthSecurityProjectionComponent.class);
-        ClientCredentialsAccessPolicy accessPolicy = mock(ClientCredentialsAccessPolicy.class);
         ResourceServerStore resources = mock(ResourceServerStore.class);
+        ClientCredentialsAccessPolicy accessPolicy = new ClientCredentialsAccessPolicy(resources);
         OAuthGrantRepository grants = mock(OAuthGrantRepository.class);
         OAuthClientBO client = OAuthClientBO.builder()
                 .id(501L).version(2L).clientId("orders-service").appId("stable-app-42")
                 .clientType(OAuthClient.ClientType.CONFIDENTIAL)
                 .purpose(OAuthClientPurposeEnum.SERVICE).status(OAuthClient.Status.ACTIVE)
-                .credentialVersion(8L).resourceUris(List.of(targetUri.toASCIIString()))
+                .credentialVersion(8L).resourceUris(List.of())
                 .accessTtlSeconds(300).refreshTtlSeconds(0).build();
         ResourceServer target = new ResourceServer(
                 "orders-resource", targetUri, "orders", "orders", "prod",
                 "orders-service", "orders", "orders:entry", Duration.ofMinutes(5),
                 ResourceServerStatus.ACTIVE, 2L);
-        ClientCredentialsAccessPolicy.ServiceResourceAccess access =
-                new ClientCredentialsAccessPolicy.ServiceResourceAccess(
-                        "orders-service", "source-resource", "commerce", "orders", "prod",
-                        "orders-resource", targetUri, 2L, "1001", requestedScopes, 4L,
-                        top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.TENANT);
+        ResourceServer source = new ResourceServer(
+                "source-resource", URI.create("https://source.example.test/orders"), "commerce", "orders", "prod",
+                "orders-service", "orders", "orders:entry", Duration.ofMinutes(5),
+                ResourceServerStatus.ACTIVE, 1L);
+        ClientResourceGrant grant = new ClientResourceGrant(
+                "orders-service", "orders-resource", ResourceGrantType.CLIENT_CREDENTIALS, "1001",
+                requestedScopes, ClientResourceGrant.Status.ACTIVE, 4L,
+                top.egon.cola.platform.tianquan.shoubing.contract.ServiceTokenContext.TENANT);
         OAuthSecuritySnapshotBO snapshot = OAuthSecuritySnapshotBO.builder()
                 .realmGeneration(1L).clientGeneration(2L).readyEpoch("epoch-1").revision(4L).build();
         when(clients.findById(realm, 501L)).thenReturn(Optional.of(client));
@@ -608,8 +627,9 @@ class OAuthOidcProtocolContractTest {
         when(projection.snapshotForAuthorization(realm, 501L, "SERVICE", null))
                 .thenReturn(snapshot);
         when(resources.findByUri(targetUri)).thenReturn(Optional.of(target));
-        when(accessPolicy.authorize(any(OAuthClient.class), any(ResourceServer.class),
-                eq("1001"), eq(requestedScopes))).thenReturn(access);
+        when(resources.findByManagementClientId("orders-service")).thenReturn(Optional.of(source));
+        when(resources.findGrant("orders-service", "orders-resource", ResourceGrantType.CLIENT_CREDENTIALS, "1001"))
+                .thenReturn(Optional.of(grant));
         when(grants.findGrantForUpdate(realm, 501L, "orders-resource",
                 ResourceGrantType.CLIENT_CREDENTIALS)).thenReturn(Optional.of(OAuthGrantBO.builder()
                 .id(700L).version(4L).clientPk(501L).resourceServerId("orders-resource")
@@ -627,6 +647,15 @@ class OAuthOidcProtocolContractTest {
 
         assertEquals("stable-app-42", result.appId());
         assertEquals("501:8", result.credentialId());
+        assertEquals("1001", result.resourceAccess().tenantId());
+        assertEquals(requestedScopes, result.resourceAccess().scopes());
+
+        assertThrows(top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceAuthorizationException.class,
+                () -> service.authorizeClientCredentials(realm, 501L, targetUri, Set.of("orders:write")));
+        when(resources.findGrant("orders-service", "orders-resource", ResourceGrantType.CLIENT_CREDENTIALS, "1001"))
+                .thenReturn(Optional.empty());
+        assertThrows(top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceAuthorizationException.class,
+                () -> service.authorizeClientCredentials(realm, 501L, targetUri, requestedScopes));
     }
 
     @Test

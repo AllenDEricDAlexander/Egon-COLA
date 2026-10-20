@@ -45,8 +45,8 @@ export const PORTAL_PLATFORM_ITEMS: readonly PortalPlatformItem[] = [
   {
     key: 'tianquan-jianshen',
     label: '权限治理',
-    path: '/xingyuan/tianquan-jianshen/roles',
-    standaloneUrl: configuredStandaloneUrl('VITE_TIANQUAN_JIANSHEN_ADMIN_WEB_URL', '/roles', '/tianquan-jianshen/roles'),
+    path: '/xingyuan/tianquan-jianshen/iam/roles',
+    standaloneUrl: configuredStandaloneUrl('VITE_TIANQUAN_JIANSHEN_ADMIN_WEB_URL', '/iam/roles', '/tianquan-jianshen/iam/roles'),
   },
   {
     key: 'yuheng',

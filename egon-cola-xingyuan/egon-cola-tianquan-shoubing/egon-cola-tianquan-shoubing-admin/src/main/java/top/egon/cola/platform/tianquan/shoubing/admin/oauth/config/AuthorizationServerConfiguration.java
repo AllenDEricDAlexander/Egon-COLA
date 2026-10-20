@@ -152,6 +152,7 @@ public class AuthorizationServerConfiguration {
     RequestCache oauthAuthorizationRequestCache() {
         HttpSessionRequestCache requestCache = new HttpSessionRequestCache();
         requestCache.setCreateSessionAllowed(true);
+        requestCache.setMatchingRequestParameterName(null);
         return requestCache;
     }
 
@@ -317,6 +318,13 @@ public class AuthorizationServerConfiguration {
                                 // SAS exempts all endpoints during init; the native browser POST must remain protected.
                                 filter.setRequireCsrfProtectionMatcher(request -> CsrfFilter.DEFAULT_CSRF_MATCHER.matches(request)
                                         && (!endpoints.matches(request) || isConsentSubmit(request)));
+                                var rejected = new org.springframework.security.web.access.AccessDeniedHandlerImpl();
+                                filter.setAccessDeniedHandler((request, response, failure) -> {
+                                    log.warn("OAuth browser CSRF rejected; method={} path={} tokenPresent={} sessionValid={} failureType={}",
+                                            request.getMethod(), contextPath(request), request.getParameter("_csrf") != null,
+                                            request.isRequestedSessionIdValid(), failure.getClass().getSimpleName());
+                                    rejected.handle(request, response, failure);
+                                });
                                 return filter;
                             }
                         }))

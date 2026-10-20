@@ -4,6 +4,7 @@ import com.google.protobuf.StringValue;
 import jakarta.validation.Validation;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
+import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.annotation.FailStrategy;
@@ -99,6 +100,87 @@ class RpcReferenceDefinitionResolverTest {
                 .hasMessageContaining("requires bizCode and appCode");
     }
 
+    @Test
+    void keepsLiteralDirectIdentityWithoutAnApplicationContext() throws Exception {
+        RpcReferenceDefinitionResolver definitions = new RpcReferenceDefinitionResolver(
+                new EgonRpcProperties(),
+                new RpcProcessIdentity("consumer", "test", "127.0.0.1", 1, "i-1"));
+
+        RpcReferenceDefinition definition = definitions.resolve(
+                Holder.class.getDeclaredField("literal"), descriptor);
+
+        assertThat(definition.directQuery().bizCode()).isEqualTo("commerce");
+        assertThat(definition.directQuery().appCode()).isEqualTo("orders");
+    }
+
+    @Test
+    void resolvesDirectIdentityDefaultsFromTheApplicationEnvironment() throws Exception {
+        RpcReferenceDefinitionResolver definitions = definitions(new MockEnvironment());
+
+        RpcReferenceDefinition definition = definitions.resolve(
+                Holder.class.getDeclaredField("configured"), descriptor);
+
+        assertThat(definition.directQuery().bizCode()).isEqualTo("commerce");
+        assertThat(definition.directQuery().appCode()).isEqualTo("orders");
+    }
+
+    @Test
+    void resolvesConfiguredDirectIdentityOnceAtInjection() throws Exception {
+        MockEnvironment environment = new MockEnvironment()
+                .withProperty("rpc.test.biz", "identity")
+                .withProperty("rpc.test.app", "identity-directory");
+        RpcReferenceDefinitionResolver definitions = definitions(environment);
+
+        RpcReferenceDefinition definition = definitions.resolve(
+                Holder.class.getDeclaredField("configured"), descriptor);
+        environment.setProperty("rpc.test.app", "changed-after-injection");
+
+        assertThat(definition.directQuery().bizCode()).isEqualTo("identity");
+        assertThat(definition.directQuery().appCode()).isEqualTo("identity-directory");
+    }
+
+    @Test
+    void rejectsDirectPlaceholdersWithoutAnApplicationContextEvenWithDefaults() {
+        RpcReferenceDefinitionResolver definitions = new RpcReferenceDefinitionResolver(
+                new EgonRpcProperties(),
+                new RpcProcessIdentity("consumer", "test", "127.0.0.1", 1, "i-1"));
+
+        assertThatThrownBy(() -> definitions.resolve(
+                Holder.class.getDeclaredField("configured"), descriptor))
+                .isInstanceOfSatisfying(EgonRpcException.class, error -> {
+                    assertThat(error.getRpcErrorCode()).isEqualTo(EgonRpcErrorCode.RPC_INVALID_CONTRACT);
+                    assertThat(error.getMessage()).contains("bizCode", "requires an application context");
+                });
+    }
+
+    @Test
+    void rejectsUnresolvedAndBlankDirectIdentities() {
+        assertThatThrownBy(() -> definitions(new MockEnvironment()).resolve(
+                Holder.class.getDeclaredField("required"), descriptor))
+                .isInstanceOf(EgonRpcException.class)
+                .hasMessageContaining("bizCode placeholder is unresolved");
+        assertThatThrownBy(() -> definitions(new MockEnvironment()
+                .withProperty("rpc.test.biz", "identity")).resolve(
+                Holder.class.getDeclaredField("required"), descriptor))
+                .isInstanceOf(EgonRpcException.class)
+                .hasMessageContaining("appCode placeholder is unresolved");
+
+        for (String property : new String[]{"rpc.test.biz", "rpc.test.app"}) {
+            assertThatThrownBy(() -> definitions(new MockEnvironment()
+                    .withProperty(property, " ")).resolve(
+                    Holder.class.getDeclaredField("configured"), descriptor))
+                    .isInstanceOf(EgonRpcException.class)
+                    .hasMessageContaining("must resolve to a non-blank identity");
+        }
+    }
+
+    private RpcReferenceDefinitionResolver definitions(MockEnvironment environment) {
+        ApplicationContext context = mock(ApplicationContext.class);
+        when(context.getEnvironment()).thenReturn(environment);
+        return new RpcReferenceDefinitionResolver(new EgonRpcProperties(),
+                new RpcProcessIdentity("consumer", "test", "127.0.0.1", 1, "i-1"), context);
+    }
+
     static final class Holder {
 
         @EgonRpcReference(
@@ -111,6 +193,17 @@ class RpcReferenceDefinitionResolverTest {
                 failStrategy = FailStrategy.LOCAL_FALLBACK,
                 loadBalanceKeyResolver = "hash-key")
         private EchoContract direct;
+
+        @EgonRpcReference(bizCode = "commerce", appCode = "orders")
+        private EchoContract literal;
+
+        @EgonRpcReference(
+                bizCode = "${rpc.test.biz:commerce}",
+                appCode = "${rpc.test.app:orders}")
+        private EchoContract configured;
+
+        @EgonRpcReference(bizCode = "${rpc.test.biz}", appCode = "${rpc.test.app}")
+        private EchoContract required;
 
         @EgonRpcReference(
                 mode = RpcReferenceMode.GATEWAY,

@@ -1,5 +1,6 @@
 package top.egon.cola.component.yuheng.admin.observability.repository.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -10,8 +11,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Repository;
 import org.springframework.validation.annotation.Validated;
-import top.egon.cola.component.common.mybatis.business.EgonColaTenantIdProvider;
-import top.egon.cola.component.common.mybatis.business.EgonColaUserIdProvider;
 import top.egon.cola.component.yuheng.admin.observability.converter.GatewayConsumeFailurePersistenceConverter;
 import top.egon.cola.component.yuheng.admin.observability.domain.bo.GatewayConsumeFailureBO;
 import top.egon.cola.component.yuheng.admin.observability.domain.dto.GatewayAuditQueryDTO;
@@ -103,13 +102,6 @@ public class MpGatewayObservabilityRepository implements GatewayObservabilityRep
     @Qualifier("gatewayConsumeFailurePersistenceConverter")
     private final GatewayConsumeFailurePersistenceConverter consumeFailureConverter;
 
-    /**
-     * 中文说明：软删回收需要写审计列，操作者取自边界同一个 MDC 提供者，而非业务入参。
-     * English summary: The soft-delete sweep stamps the audit column, so the operator comes from the boundary's own MDC provider rather
-     * than a business argument.
-     */
-    @Qualifier("egonColaMdcUserIdProvider")
-    private final EgonColaUserIdProvider userIdProvider;
 
     /**
      * 中文说明：执行 project 操作；先落摘要投影，只有 {@code event_id} 首次插入成功才累积分钟指标，重复投递返回 false。
@@ -223,8 +215,16 @@ public class MpGatewayObservabilityRepository implements GatewayObservabilityRep
      */
     @Override
     public int deleteExpired(Instant now) {
-        return summaryRepository.getBaseMapper().softDeleteExpired(
-                now, EgonColaTenantIdProvider.currentTenantId(), userIdProvider.currentUserId());
+        int swept = 0;
+        for (GatewayCallEventSummaryPO row : summaryRepository.list(
+                Wrappers.<GatewayCallEventSummaryPO>lambdaQuery()
+                        .lt(GatewayCallEventSummaryPO::getExpiresAt, now)
+                        .orderByAsc(GatewayCallEventSummaryPO::getId))) {
+            if (summaryRepository.removeById(row)) {
+                swept++;
+            }
+        }
+        return swept;
     }
 
     /**

@@ -115,7 +115,6 @@ public class IdpStarterAutoConfiguration {
         }
 
         @Bean(name = "tokenUsageAuditComponent")
-        @ConditionalOnBean({RedissonClient.class, ObjectMapper.class})
         @ConditionalOnMissingBean(TokenUsageAuditComponent.class)
         public TokenUsageAuditComponent tokenUsageAuditComponent(
                 @Qualifier("idpAuditRedissonClient") RedissonClient redisson,
@@ -155,7 +154,7 @@ public class IdpStarterAutoConfiguration {
         @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
         IdpSecurityObservationFilter idpSecurityObservationFilter(
                 @Qualifier("idpObservedVerificationComponent") IdpObservedVerificationComponent observations,
-                @Qualifier("idpEndpointAuthenticationPolicy") IdpEndpointAuthenticationPolicy endpointPolicy) {
+                IdpEndpointAuthenticationPolicy endpointPolicy) {
             return new IdpSecurityObservationFilter(observations, endpointPolicy);
         }
 
@@ -353,7 +352,7 @@ public class IdpStarterAutoConfiguration {
             @Qualifier("idpOAuth2AuthorizedClientManager") OAuth2AuthorizedClientManager manager,
             @Qualifier("idpClientCredentialsRequestEntityConverter") IdpClientCredentialsRequestEntityConverter converter,
             @Qualifier("clientRegistrationRepository") ClientRegistrationRepository registrations,
-            @Qualifier("idpOAuth2AuthorizedClientService") OAuth2AuthorizedClientService authorizedClients,
+            OAuth2AuthorizedClientService authorizedClients,
             @Qualifier("trustedIssuerRegistry") TrustedIssuerRegistry trustedIssuerRegistry,
             @Qualifier("idpStarterProperties") IdpStarterProperties properties,
             @Qualifier("idpClock") Clock idpClock,
@@ -646,7 +645,7 @@ public class IdpStarterAutoConfiguration {
     public IdpBearerAuthenticationFilter idpBearerAuthenticationFilter(
             @Qualifier("userAccessTokenVerifier") UserAccessTokenVerifier userAccessTokenVerifier,
             @Qualifier("serviceAccessTokenVerifier") ServiceAccessTokenVerifier serviceAccessTokenVerifier,
-            @Qualifier("idpEndpointAuthenticationPolicy") IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
+            IdpEndpointAuthenticationPolicy endpointAuthenticationPolicy,
             @Qualifier("jacksonObjectMapper") ObjectMapper objectMapper,
             @Qualifier("verifiedTenantContextFilter") VerifiedTenantContextFilter verifiedTenantContextFilter,
             @Qualifier("idpJwtVerifier") IdpJwtVerifier combinedVerifier

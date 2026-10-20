@@ -54,7 +54,7 @@ public class EdgeSessionController {
     private final EdgeAuthorizedClientRepository authorizedClients;
     @Qualifier("edgeLogoutService")
     private final EdgeLogoutService logoutService;
-    @Qualifier("clientRegistrationRepository")
+    @Qualifier("reactiveClientRegistrationRepository")
     private final ReactiveClientRegistrationRepository registrations;
     @Qualifier("edgeOAuthProperties")
     private final EdgeOAuthProperties edgeProperties;

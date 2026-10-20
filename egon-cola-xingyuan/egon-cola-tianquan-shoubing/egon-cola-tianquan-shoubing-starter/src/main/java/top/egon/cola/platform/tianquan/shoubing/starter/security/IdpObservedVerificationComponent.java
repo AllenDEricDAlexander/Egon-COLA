@@ -135,7 +135,8 @@ public class IdpObservedVerificationComponent {
         return handoff(new ValidationUtils(validator).validate(proof), "DENIED", "AUTHORIZATION_DENIED", proof.resource(), trace);
     }
 
-    private boolean handoff(TokenAuditProofBO proof, String result, String reason, URI observedResource, String trace) {
+    // Serialize the readiness check with its handoff so an in-flight frame is not treated as undelivered backlog.
+    private synchronized boolean handoff(TokenAuditProofBO proof, String result, String reason, URI observedResource, String trace) {
         try {
             if (!auditReady.getAsBoolean()) { return false; }
             if (trace != null && !trace.matches("[A-Za-z0-9._~-]{1,128}")) { trace = null; }

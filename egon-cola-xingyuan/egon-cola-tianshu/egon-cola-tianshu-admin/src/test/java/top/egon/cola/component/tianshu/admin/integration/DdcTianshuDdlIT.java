@@ -57,7 +57,7 @@ class DdcTianshuDdlIT {
             EgonColaDdlTargetBO target = new EgonColaDdlTargetBO("tianshu-it", schema, RoleEnum.MASTER_DATA,
                     commitUnknownAfterServerCommit(dataSource), manifest, routeFingerprint());
             List<EgonColaDdlResult> initialized = runner().run(List.of(target));
-            assertThat(initialized).hasSize(manifest.scripts().size())
+            assertThat(initialized).hasSize(manifest.scripts().size() - manifest.startingIndex(null))
                     .allSatisfy(result -> assertThat(result.status()).isEqualTo(EgonColaDdlResult.StatusEnum.APPLIED));
 
             EgonColaDdlTargetBO normalTarget = new EgonColaDdlTargetBO("tianshu-it", schema,

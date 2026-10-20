@@ -25,49 +25,49 @@
 
     <select id="selectActiveById" resultMap="IdentityTenantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
     <select id="selectActiveByIds" resultMap="IdentityTenantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">#{id}</foreach>
         ORDER BY update_time DESC, identity_tenant_id ASC
     </select>
     <select id="selectByExternalKey" resultMap="IdentityTenantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{directoryPartitionId}
           AND identity_tenant_id = #{identityTenantId} AND deleted_at IS NULL
     </select>
     <select id="selectByTenantCode" resultMap="IdentityTenantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{directoryPartitionId}
           AND lower(tenant_code) = lower(#{tenantCode}) AND deleted_at IS NULL
     </select>
     <select id="selectForUpdate" resultMap="IdentityTenantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{directoryPartitionId}
           AND identity_tenant_id = #{identityTenantId} AND deleted_at IS NULL
         FOR UPDATE
     </select>
     <select id="selectDirectory" resultMap="IdentityTenantPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{directoryPartitionId} AND deleted_at IS NULL
         ORDER BY update_time DESC, identity_tenant_id ASC
     </select>
     <select id="countByTenantCode" resultType="long">
         SELECT count(*)
-        FROM oauth_identity_tenant
+        FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{directoryPartitionId}
           AND lower(tenant_code) = lower(#{tenantCode}) AND deleted_at IS NULL
     </select>
     <update id="updateExpectedVersion">
-        UPDATE oauth_identity_tenant
+        UPDATE tianquan_oauth.oauth_identity_tenant
         SET tenant_name = #{po.tenantName},
             status = #{po.status},
             settings = #{po.settings, typeHandler=top.egon.cola.platform.tianquan.shoubing.admin.tenant.dao.IdentityTenantSettingsJsonbTypeHandler},
@@ -81,7 +81,7 @@
           AND deleted_at IS NULL
     </update>
     <update id="deleteVersionedById">
-        UPDATE oauth_identity_tenant
+        UPDATE tianquan_oauth.oauth_identity_tenant
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{et.updateUserId},

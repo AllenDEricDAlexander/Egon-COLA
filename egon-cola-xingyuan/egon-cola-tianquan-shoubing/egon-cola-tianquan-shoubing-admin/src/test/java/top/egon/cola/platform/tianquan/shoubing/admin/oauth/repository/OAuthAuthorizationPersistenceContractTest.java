@@ -19,7 +19,6 @@ import java.nio.file.attribute.PosixFilePermissions;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
@@ -272,7 +271,10 @@ class OAuthAuthorizationPersistenceContractTest {
         OAuthStringListJsonbTypeHandler handler = new OAuthStringListJsonbTypeHandler();
         PreparedStatement statement = Mockito.mock(PreparedStatement.class);
         handler.setNonNullParameter(statement, 1, List.of("openid", "profile"), JdbcType.OTHER);
-        Mockito.verify(statement).setObject(1, "[\"openid\",\"profile\"]", Types.OTHER);
+        var json = org.mockito.ArgumentCaptor.forClass(org.postgresql.util.PGobject.class);
+        Mockito.verify(statement).setObject(org.mockito.ArgumentMatchers.eq(1), json.capture());
+        assertEquals("jsonb", json.getValue().getType());
+        assertEquals("[\"openid\",\"profile\"]", json.getValue().getValue());
         ResultSet resultSet = Mockito.mock(ResultSet.class);
         Mockito.when(resultSet.getString("authorities")).thenReturn("[\"openid\",\"profile\"]");
         assertEquals(List.of("openid", "profile"), handler.getNullableResult(resultSet, "authorities"));
@@ -698,7 +700,7 @@ class OAuthAuthorizationPersistenceContractTest {
         Path path = repositoryRoot().resolve(ADMIN_PREFIX + "resources/" + resource);
         assertTrue(Files.isRegularFile(path), "Missing mapper XML " + resource);
         String xml = Files.readString(path).toLowerCase();
-        assertTrue(xml.contains("from " + table), "Wrong table mapping " + resource);
+        assertTrue(xml.contains("from tianquan_oauth." + table), "Wrong table mapping " + resource);
         assertTrue(xml.contains("tenant_id = #{tenantid}"), "Missing tenant predicate " + resource);
         assertTrue(xml.contains("deleted_at is null"), "Missing active predicate " + resource);
         assertTrue(xml.contains("version = #{expectedversion}"), "Missing expectedVersion predicate " + resource);

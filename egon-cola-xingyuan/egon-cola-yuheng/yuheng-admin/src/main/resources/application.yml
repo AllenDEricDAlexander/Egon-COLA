@@ -17,7 +17,7 @@ spring:
       max-file-size: 20MB
       max-request-size: 21MB
   flyway:
-    locations: classpath:db/migration
+    enabled: false
 
 server:
   ssl:

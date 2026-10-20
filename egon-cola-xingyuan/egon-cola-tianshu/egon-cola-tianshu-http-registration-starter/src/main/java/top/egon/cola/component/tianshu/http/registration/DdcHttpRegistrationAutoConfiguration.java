@@ -67,6 +67,7 @@ public class DdcHttpRegistrationAutoConfiguration {
             ObjectProvider<DdcInstanceIdentity> ddcIdentity,
             Environment environment,
             IdpServiceOAuth2Client serviceClient,
+            @org.springframework.beans.factory.annotation.Qualifier("egon.cola.platform.tianquan.shoubing-top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties")
             IdpStarterProperties idpProperties) {
         RegistrationContribution contribution = mergeContributions(
                 contributors

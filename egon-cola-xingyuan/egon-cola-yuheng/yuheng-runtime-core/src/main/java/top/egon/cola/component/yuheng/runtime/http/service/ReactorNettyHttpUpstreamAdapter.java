@@ -10,6 +10,8 @@ import top.egon.cola.component.yuheng.runtime.http.service.GatewayHeaderFilter;
 import io.netty.buffer.PooledByteBufAllocator;
 import io.netty.handler.codec.http.HttpMethod;
 import io.netty.channel.ChannelOption;
+import io.netty.handler.ssl.SslContextBuilder;
+import io.netty.handler.ssl.SslProvider;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.NettyDataBufferFactory;
 import reactor.core.publisher.Flux;
@@ -19,7 +21,9 @@ import reactor.netty.resources.ConnectionProvider;
 import top.egon.cola.component.yuheng.runtime.http.common.buffer.GatewayDataBufferOwnership;
 import top.egon.cola.component.yuheng.runtime.http.common.buffer.GatewayDataBufferPipeline;
 import top.egon.cola.component.yuheng.runtime.transport.service.GatewayTransportTimeouts;
+import top.egon.cola.component.yuheng.runtime.security.domain.GatewayTransportSecurity;
 
+import javax.net.ssl.SSLException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -79,6 +83,8 @@ public final class ReactorNettyHttpUpstreamAdapter
      */
     private final HttpClient client;
 
+    private final HttpClient secureClient;
+
     /**
      * 中文说明：保存 header过滤器 对应的状态、依赖或配置值；字段类型为 {@code GatewayHeaderFilter}，由 {@code ReactorNettyHttpUpstreamAdapter} 在其生命周期内读取或更新。
      * English summary: Holds the state, dependency, or configuration represented by header filter; its type is {@code GatewayHeaderFilter}, and {@code ReactorNettyHttpUpstreamAdapter} reads or updates it during its lifecycle.
@@ -101,12 +107,42 @@ public final class ReactorNettyHttpUpstreamAdapter
             int maxConnections,
             int pendingAcquireMaxCount,
             Duration idleTimeout) {
+        this(maxConnections, pendingAcquireMaxCount, idleTimeout, null);
+    }
+
+    /**
+     * 中文说明：HTTPS 上游可显式使用网关已有的证书身份与信任材料；未配置时保留默认客户端行为。
+     * English summary: Uses optional gateway identity and trust material for HTTPS upstreams, retaining the default otherwise.
+     */
+    public ReactorNettyHttpUpstreamAdapter(
+            int maxConnections,
+            int pendingAcquireMaxCount,
+            Duration idleTimeout,
+            GatewayTransportSecurity transportSecurity) {
         connectionProvider = ConnectionProvider.builder("yuheng-http-upstream")
                 .maxConnections(maxConnections)
                 .pendingAcquireMaxCount(pendingAcquireMaxCount)
                 .maxIdleTime(idleTimeout)
                 .build();
         client = HttpClient.create(connectionProvider);
+        if (transportSecurity != null && transportSecurity.enabled()) {
+            try {
+                SslContextBuilder context = SslContextBuilder.forClient()
+                        .sslProvider(SslProvider.JDK)
+                        .keyManager(transportSecurity.certificateChainFile().toFile(), transportSecurity.privateKeyFile().toFile());
+                if (transportSecurity.trustCertificateCollectionPath() != null
+                        && !transportSecurity.trustCertificateCollectionPath().isBlank()) {
+                    context.trustManager(transportSecurity.trustCertificateCollectionFile().toFile());
+                }
+                var sslContext = context.build();
+                secureClient = client.secure(spec -> spec.sslContext(sslContext));
+            } catch (SSLException | IllegalArgumentException failure) {
+                connectionProvider.dispose();
+                throw new IllegalStateException("failed to configure HTTP Provider mTLS", failure);
+            }
+        } else {
+            secureClient = client;
+        }
     }
 
     /**
@@ -122,7 +158,7 @@ public final class ReactorNettyHttpUpstreamAdapter
             HttpUpstreamRequest request) {
         String scheme = request.provider().secure() ? "https" : "http";
         long startedNanos = System.nanoTime();
-        Mono<GatewayOutboundHttpResponse> result = client
+        Mono<GatewayOutboundHttpResponse> result = (request.provider().secure() ? secureClient : client)
                 .option(
                         ChannelOption.CONNECT_TIMEOUT_MILLIS,
                         timeoutMillis(request.connectTimeout())

@@ -434,6 +434,7 @@ public class DdcAutoConfiguration {
                                                  ObjectProvider<DdcInstanceMetadataContributor>
                                                          metadataContributors,
                                                  IdpServiceOAuth2Client serviceClient,
+                                                 @Qualifier("egon.cola.platform.tianquan.shoubing-top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties")
                                                  IdpStarterProperties idpProperties) {
         return new DdcInstanceService(
                 properties,

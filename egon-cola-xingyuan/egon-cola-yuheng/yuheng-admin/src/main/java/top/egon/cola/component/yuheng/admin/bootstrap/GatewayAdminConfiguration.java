@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -70,6 +71,15 @@ import java.util.Set;
 })
 public class GatewayAdminConfiguration {
 
+    /** Selects the host connection for Common cache alongside the Tianshu client. */
+    @Bean(name = "redissonClient", destroyMethod = "")
+    @ConditionalOnMissingBean(name = "redissonClient")
+    @ConditionalOnProperty(prefix = "egon.cola.component.cache", name = "enabled", havingValue = "true", matchIfMissing = true)
+    org.redisson.api.RedissonClient applicationCacheRedissonClient(
+            @Qualifier("rbac3RuntimeRedissonClient") org.redisson.api.RedissonClient client) {
+        return client;
+    }
+
     /** Supplies projection timestamps regardless of whether OpenAPI discovery is enabled. */
     @Bean("gatewayProjectionClock")
     Clock gatewayProjectionClock() {
@@ -92,7 +102,7 @@ public class GatewayAdminConfiguration {
     }
 
     /** Provides the configured JSON mapper used by the OpenAPI boundary. */
-    @Bean(name = "gatewayOpenApiObjectMapper")
+    @Bean(name = {"gatewayOpenApiObjectMapper", "jacksonObjectMapper"})
     @Primary
     ObjectMapper gatewayOpenApiObjectMapper() {
         return JsonMapper.builder().findAndAddModules()
@@ -425,8 +435,9 @@ public class GatewayAdminConfiguration {
     @Bean
     GatewayObservabilityRetentionReaper
             gatewayObservabilityRetentionReaper(
-            GatewayCallEventIngestService service) {
-        return new GatewayObservabilityRetentionReaper(service);
+            GatewayCallEventIngestService service,
+            top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent persistenceContext) {
+        return new GatewayObservabilityRetentionReaper(service, persistenceContext);
     }
 
     /**

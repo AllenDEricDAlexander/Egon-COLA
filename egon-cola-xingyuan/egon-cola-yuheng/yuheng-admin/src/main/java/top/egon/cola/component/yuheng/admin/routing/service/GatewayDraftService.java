@@ -590,7 +590,7 @@ public class GatewayDraftService {
             RequestAuditContext request,
             Instant now) {
         draft.touch(required(reason, "changeReason"), actor.actorId(), now);
-        drafts.flush();
+        draft = drafts.save(draft);
         GatewayDraftMutationResultVO result = new GatewayDraftMutationResultVO(
                 draft.getRevision(),
                 resourceId,

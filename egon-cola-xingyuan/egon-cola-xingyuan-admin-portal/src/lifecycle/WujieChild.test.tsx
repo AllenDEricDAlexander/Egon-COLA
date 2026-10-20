@@ -48,7 +48,7 @@ describe('WujieChild', () => {
       name: 'tianquan-shoubing',
       url: expect.stringMatching(/\/overview$/),
       el: screen.getByTestId('wujie-host-tianquan-shoubing'),
-      attrs: {src: 'about:blank'},
+      attrs: {src: new URL('/wujie-empty.html', window.location.origin).toString()},
       degradeAttrs: {title: '身份与安全', style: 'display:block;width:100%;height:100%;border:0;box-shadow:none'},
       fiber: false,
       sync: false,
@@ -72,6 +72,15 @@ describe('WujieChild', () => {
       message: 'Child mount rejected',
     }))
     expect(screen.getByTestId('wujie-host-tianquan-shoubing')).toBeInTheDocument()
+  })
+
+  it('does not start a sandbox after the mounting effect was cancelled', async () => {
+    const rendered = render(<WujieChild manifest={manifest} context={context} onState={vi.fn()} />)
+    rendered.unmount()
+
+    await Promise.resolve()
+
+    expect(startApp).not.toHaveBeenCalled()
   })
 
   it('destroys the Core instance when the host unmounts', async () => {

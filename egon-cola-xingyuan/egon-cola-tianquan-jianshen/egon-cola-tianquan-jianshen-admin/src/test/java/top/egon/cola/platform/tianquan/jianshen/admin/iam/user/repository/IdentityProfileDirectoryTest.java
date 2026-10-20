@@ -1,6 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.iam.user.repository;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.mock.env.MockEnvironment;
 import top.egon.cola.component.rpc.annotation.EgonRpcReference;
 import top.egon.cola.component.rpc.consumer.reference.RpcReferenceMode;
 import top.egon.cola.platform.tianquan.shoubing.rpc.contract.IdentityDirectoryRpc;
@@ -25,10 +26,16 @@ class IdentityProfileDirectoryTest {
         Field field = IdentityProfileDirectory.class.getDeclaredField("rpc");
         EgonRpcReference reference = field.getAnnotation(
                 EgonRpcReference.class);
+        MockEnvironment environment = new MockEnvironment();
 
         assertThat(reference.mode()).isEqualTo(RpcReferenceMode.DIRECT);
-        assertThat(reference.bizCode()).isEqualTo("permission");
-        assertThat(reference.appCode()).isEqualTo("tianquan-shoubing");
+        assertThat(environment.resolveRequiredPlaceholders(reference.bizCode())).isEqualTo("permission");
+        assertThat(environment.resolveRequiredPlaceholders(reference.appCode())).isEqualTo("tianquan-shoubing");
+
+        environment.setProperty("egon.cola.platform.tianquan.shoubing.identity-directory.biz-code", "identity");
+        environment.setProperty("egon.cola.platform.tianquan.shoubing.identity-directory.app-code", "tianquan-shoubing-admin");
+        assertThat(environment.resolveRequiredPlaceholders(reference.bizCode())).isEqualTo("identity");
+        assertThat(environment.resolveRequiredPlaceholders(reference.appCode())).isEqualTo("tianquan-shoubing-admin");
     }
 
     @Test

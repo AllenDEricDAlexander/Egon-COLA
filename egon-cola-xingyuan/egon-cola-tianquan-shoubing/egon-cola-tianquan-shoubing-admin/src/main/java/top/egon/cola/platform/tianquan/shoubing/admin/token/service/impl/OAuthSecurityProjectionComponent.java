@@ -241,9 +241,10 @@ public class OAuthSecurityProjectionComponent {
                 return false;
             }
             long revision = Long.parseLong(Objects.requireNonNull(fields.get("lastRevision"), "lastRevision"));
-            return stateRepository.findByRevisionAfter(realm, revision, 0L, 1).isEmpty()
-                    && revocationRepository.findByProjectionStatus(realm, "PENDING", revision, 0L, 1).isEmpty()
-                    && revocationRepository.findByProjectionStatus(realm, "APPLIED", revision, 0L, 1).isEmpty();
+            // The repository cursor is (revision,id); skip every row already covered by this revision.
+            return stateRepository.findByRevisionAfter(realm, revision, Long.MAX_VALUE, 1).isEmpty()
+                    && revocationRepository.findByProjectionStatus(realm, "PENDING", revision, Long.MAX_VALUE, 1).isEmpty()
+                    && revocationRepository.findByProjectionStatus(realm, "APPLIED", revision, Long.MAX_VALUE, 1).isEmpty();
         } catch (DataAccessException | RedisException | NumberFormatException | NullPointerException failure) {
             log.warn("OAuth issuer projection is not ready; issuerHash={}", issuerHash);
             return false;
@@ -335,7 +336,7 @@ public class OAuthSecurityProjectionComponent {
                 || !"READY".equals(value(values, 2))) {
             throw unavailable("OAUTH_SECURITY_READY_NOT_AVAILABLE");
         }
-        verifyProjection(values, 3, realmState);
+        verifyRealmProjection(values, 3, realmState);
         verifyProjection(values, 6, clientState);
         if (user) {
             verifyProjection(values, 9, subjectState);
@@ -739,6 +740,19 @@ public class OAuthSecurityProjectionComponent {
         if (!Long.toString(state.getGeneration()).equals(value(values, offset))
                 || !isEnabled(value(values, offset + 1))
                 || !Long.toString(state.getRevision()).equals(value(values, offset + 2))) {
+            throw unavailable("OAUTH_SECURITY_PROJECTION_STALE");
+        }
+    }
+
+    /**
+     * Realm revision also allocates revisions for client and subject changes. Its projection may therefore
+     * carry an earlier revision with the same generation; the READY watermark below still covers every DB revision.
+     * Realm generation/enabled checks and exact client/subject projection checks remain mandatory.
+     */
+    private static void verifyRealmProjection(List<Object> values, int offset, OAuthSecurityStateBO state) {
+        if (!Long.toString(state.getGeneration()).equals(value(values, offset))
+                || !isEnabled(value(values, offset + 1))
+                || number(values, offset + 2) > state.getRevision()) {
             throw unavailable("OAUTH_SECURITY_PROJECTION_STALE");
         }
     }

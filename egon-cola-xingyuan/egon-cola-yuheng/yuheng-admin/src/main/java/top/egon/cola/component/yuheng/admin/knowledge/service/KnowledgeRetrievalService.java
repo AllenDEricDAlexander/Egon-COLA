@@ -23,7 +23,7 @@ import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
  * 用法 / Usage: 本端口在 Step 12 先行声明（advance declaration），因为 Step 12 的 {@code KnowledgeController} 拥有
  * API-022 且必须编译；实现由 Step 13 提供，且不得重复创建本文件。Step 12 内由
  * {@code KnowledgeServiceImpl#answer(AdminActor, String, KnowledgeAnswerCommandDTO)} 在完成角色复核后委托调用，
- * 注入名固定 {@code knowledgeRetrievalService}。嵌入向量只经本地 alias 产生（无云端兜底），
+ * 注入名固定 {@code knowledgeRetrievalServiceImpl}。嵌入向量只经本地 alias 产生（无云端兜底），
  * 检索查询向量也必须落在知识库冻结的嵌入空间与维度上。
  * 错误契约固定：无权读取该知识库 {@code 403 KNOWLEDGE_FORBIDDEN}；知识库/文档/修订不可见
  * {@code 404 KNOWLEDGE_RESOURCE_NOT_FOUND}；命令字段或状态不成立（例如活动索引尚不存在、维度与查询不匹配）
@@ -33,7 +33,7 @@ import top.egon.cola.component.yuheng.admin.shared.domain.AdminActor;
  * / This port is advance-declared in Step 12 because the Step 12 {@code KnowledgeController} owns API-022 and must compile;
  * Step 13 supplies the implementation and must not re-create this file. Inside Step 12 it is delegated to by
  * {@code KnowledgeServiceImpl#answer(AdminActor, String, KnowledgeAnswerCommandDTO)} after the role check, injected as
- * {@code knowledgeRetrievalService}. Embedding vectors come only from the LOCAL alias with no cloud fallback and the query
+ * {@code knowledgeRetrievalServiceImpl}. Embedding vectors come only from the LOCAL alias with no cloud fallback and the query
  * vector must stay inside the knowledge base's frozen embedding space and dimensions. The error contract is fixed: an
  * unreadable knowledge base is {@code 403 KNOWLEDGE_FORBIDDEN}, an invisible knowledge base, document or revision
  * {@code 404 KNOWLEDGE_RESOURCE_NOT_FOUND}, an invalid command field or state (no active index yet, dimensions mismatching

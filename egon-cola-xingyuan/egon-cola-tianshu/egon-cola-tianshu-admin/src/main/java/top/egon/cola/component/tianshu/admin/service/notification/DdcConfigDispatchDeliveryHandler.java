@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.validation.ConstraintViolationException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Component;
 import top.egon.cola.component.common.core.validation.ValidationUtils;
@@ -41,8 +42,9 @@ public class DdcConfigDispatchDeliveryHandler implements DeliveryHandler {
     @Qualifier("ddcTenantContextExecutor")
     private final DdcTenantContextExecutor tenantContextExecutor;
 
+    /** Resolves the publisher after Outbox has finished registering its delivery handlers. */
     @Qualifier("ddcPendingPublishDispatcher")
-    private final DdcPendingPublishDispatcher dispatcher;
+    private final ObjectProvider<DdcPendingPublishDispatcher> dispatchers;
 
     @Qualifier("ddcConfigDispatchEventConverterImpl")
     private final DdcConfigDispatchEventConverter eventConverter;
@@ -87,14 +89,14 @@ public class DdcConfigDispatchDeliveryHandler implements DeliveryHandler {
                 binding.getTenantId(), binding.getIdentityTenantId(), "system:outbox:" + event.getEventId());
         try {
             boolean delivered = tenantContextExecutor.call(
-                    tenantContext, () -> dispatcher.deliverPrepared(event));
+                    tenantContext, () -> dispatchers.getObject().deliverPrepared(event));
             if (!delivered) {
                 return DeliveryResult.permanentFailure(
                         "TIANSHU_CONFIG_ATTEMPT_STALE", "publish attempt is no longer current");
             }
             return DeliveryResult.success();
         } catch (DdcAdminException permanentFailure) {
-            dispatcher.failPrepared(event, "REDIS_DISPATCH", permanentFailure.getMessage());
+            dispatchers.getObject().failPrepared(event, "REDIS_DISPATCH", permanentFailure.getMessage());
             log.warn("Tianshu config dispatch was rejected by the current publish state: tenantId={}, eventId={}",
                     event.getTenantId(), event.getEventId());
             return DeliveryResult.permanentFailure("TIANSHU_CONFIG_DISPATCH_REJECTED", "publish dispatch rejected");

@@ -281,9 +281,23 @@ public class IsolatedAuthorizationProvisioningIT {
     }
 
     @lombok.RequiredArgsConstructor
-    private static class GuardedPhysicalDataSource extends AbstractDataSource {
+    public static class GuardedPhysicalDataSource extends AbstractDataSource {
         private final DataSource delegate;
         private final IsolatedDatabaseReceiptDTO receipt;
+
+
+        // ShardingSphere inspects JavaBean connection properties before using the guarded connections.
+        public String getUrl() {
+            return delegate instanceof DriverManagerDataSource source ? source.getUrl() : null;
+        }
+
+        public String getUsername() {
+            return delegate instanceof DriverManagerDataSource source ? source.getUsername() : null;
+        }
+
+        public String getPassword() {
+            return delegate instanceof DriverManagerDataSource source ? source.getPassword() : null;
+        }
 
         @Override
         public Connection getConnection() throws SQLException {
@@ -1421,6 +1435,7 @@ public class IsolatedAuthorizationProvisioningIT {
 
     static AnnotationConfigApplicationContext isolatedBeanContext() {
         var context = new AnnotationConfigApplicationContext();
+        context.getBeanFactory().setConversionService(org.springframework.boot.convert.ApplicationConversionService.getSharedInstance());
         context.setBeanNameGenerator(new org.springframework.context.annotation.AnnotationBeanNameGenerator());
         return context;
     }
@@ -4322,7 +4337,7 @@ public class IsolatedAuthorizationProvisioningIT {
                 String key = entry.getKey();
                 String suffix = key.endsWith(".token-uri") ? "/oauth2/token"
                         : key.endsWith(".authorization-uri") ? "/oauth2/authorize"
-                        : key.endsWith(".jwk-set-uri") ? "/oauth2/jwks"
+                        : key.endsWith(".jwk-set-uri") || key.endsWith(".jwks-uri") ? "/.well-known/jwks.json"
                         : key.endsWith(".user-info-uri") ? "/userinfo"
                         : key.endsWith(".issuer-uri") || key.endsWith(".issuer") || key.endsWith(".fallback-issuer") ? "" : null;
                 if (suffix != null && issuers.stream().noneMatch(issuer -> (issuer + suffix).equals(entry.getValue()))) {
@@ -4583,7 +4598,7 @@ public class IsolatedAuthorizationProvisioningIT {
             MybatisPlusAutoConfiguration.class})
     @Import(Rbac3ApplicationConfiguration.FieldRuleCommandConfiguration.class)
     public static class AuthorizationPersistenceConfiguration {
-        @Bean("isolatedAuthorizationClock")
+        @Bean({"isolatedAuthorizationClock", "egonColaMybatisPlusClock"})
         @Primary
         Clock clock() {
             return Clock.systemUTC();
@@ -4645,6 +4660,20 @@ public class IsolatedAuthorizationProvisioningIT {
             Rbac3FlywayConfiguration.buildRbac3Flyway(physical).migrate();
             guard.run();
             Rbac3FlywayConfiguration.buildOutboxFlyway(physical).migrate();
+            guard.run();
+            try (var connection = physical.getConnection()) {
+                try (var query = connection.prepareStatement("SELECT pg_get_userbyid(nspowner) FROM pg_namespace WHERE nspname='egon_outbox'");
+                     var rows = query.executeQuery()) {
+                    if (rows.next() && !inputs.getReceipt().getDatabaseOwner().equals(rows.getString(1))) {
+                        throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+                    }
+                }
+                try (var create = connection.prepareStatement("CREATE SCHEMA IF NOT EXISTS egon_outbox AUTHORIZATION CURRENT_USER")) {
+                    create.execute();
+                }
+            } catch (SQLException failedSchemaPreparation) {
+                throw new IllegalStateException("XINGYUAN_DEPENDENCY_UNAVAILABLE", failedSchemaPreparation);
+            }
             guard.run();
             return topology;
         }
@@ -4709,11 +4738,18 @@ public class IsolatedAuthorizationProvisioningIT {
         String content = "xingyuan.isolated.run-id=" + manifest.getRunId() + "\n"
                 + "spring.security.oauth2.client.provider.task.issuer-uri=https://127.0.0.1:28443/tenants/1001\n"
                 + "spring.security.oauth2.client.provider.task.token-uri=https://127.0.0.1:28443/tenants/1001/oauth2/token\n"
+                + "spring.security.oauth2.client.provider.task.jwk-set-uri=https://127.0.0.1:28443/tenants/1001/.well-known/jwks.json\n"
+                + "egon.cola.platform.tianquan.shoubing.trusted-issuers.task.jwks-uri=https://127.0.0.1:28443/tenants/1001/.well-known/jwks.json\n"
                 + "controlled.value=\\ leading\\ space\\nline\n";
         Files.writeString(profile, content);
         Files.setPosixFilePermissions(profile, PosixFilePermissions.fromString("rw-------"));
         writeProfileReceipt(inputs, profile);
         assertThat(readOwnerProperties(inputs)).containsEntry("controlled.value", " leading space\nline");
+        Files.writeString(profile, content.replace("/.well-known/jwks.json", "/oauth2/jwks"));
+        writeProfileReceipt(inputs, profile);
+        assertThatThrownBy(() -> readOwnerProperties(inputs)).hasMessage("XINGYUAN_TARGET_UNSAFE");
+        Files.writeString(profile, content);
+        writeProfileReceipt(inputs, profile);
         Files.writeString(profile, content.replace("https://127.0.0.1:28443/tenants/1001/oauth2/token", "https://foreign.example/oauth2/token"));
         assertThatThrownBy(() -> readOwnerProperties(inputs)).hasMessage("XINGYUAN_TARGET_UNSAFE");
         writeProfileReceipt(inputs, profile);
@@ -5176,8 +5212,8 @@ public class IsolatedAuthorizationProvisioningIT {
     static void verifyDatabaseConnection(Connection connection, IsolatedDatabaseReceiptDTO receipt)
             throws SQLException {
         try (var query = connection.prepareStatement("""
-                SELECT current_database(), inet_server_addr()::text, inet_server_port(),
-                       d.oid::bigint, obj_description(d.oid, 'pg_database'), pg_get_userbyid(d.datdba)
+                SELECT current_database(), host(inet_server_addr()), inet_server_port(),
+                       d.oid::bigint, shobj_description(d.oid, 'pg_database'), pg_get_userbyid(d.datdba)
                 FROM pg_database d WHERE d.datname = current_database()
                 """)) {
             query.setQueryTimeout(5);

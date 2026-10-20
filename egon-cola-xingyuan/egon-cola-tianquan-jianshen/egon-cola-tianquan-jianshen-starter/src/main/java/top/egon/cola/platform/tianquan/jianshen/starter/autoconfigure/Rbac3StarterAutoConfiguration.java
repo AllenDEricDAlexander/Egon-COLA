@@ -178,7 +178,7 @@ public class Rbac3StarterAutoConfiguration {
             ObjectMapper objectMapper,
             Rbac3StarterProperties properties,
             IdpServiceOAuth2Client serviceClient,
-            IdpStarterProperties idpProperties) {
+            @Qualifier("idpStarterProperties") IdpStarterProperties idpProperties) {
         var authorization = properties.getAuthorization();
         var serviceToken = authorization.getServiceToken();
         HttpTenantServiceTokenSupplier credentials =

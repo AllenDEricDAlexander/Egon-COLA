@@ -168,15 +168,5 @@
          WHERE g.env = #{env} AND g.namespace = #{namespace}
            AND r.deleted_at IS NULL AND g.deleted_at IS NULL
     </select>
-    <!-- 取代旧 deleteExpired 的物理 DELETE：守护边界禁止硬删除，故改为盖写 deleted_at、update_user_id、
-         update_time 并递增 version。update_user_id/update_time 取自 MDC 守卫上下文，以满足
-         EgonColaTenantIdGuard 对写语句审计列的校验。
-         Replaces the physical DELETE of the legacy deleteExpired: the guarded boundary forbids hard deletes, so
-         deleted_at, update_user_id and update_time are stamped and version incremented. The audit columns come from the
-         MDC guard context so the starter's write-guard audit check is satisfied. -->
-    <update id="softDeleteExpired">
-        UPDATE gateway_call_event_summary SET deleted_at = (CURRENT_TIMESTAMP AT TIME ZONE 'UTC'),
-            update_user_id = #{operatorId}, update_time = #{now,jdbcType=TIMESTAMP}, version = version + 1
-        WHERE expires_at &lt; #{now,jdbcType=TIMESTAMP} AND deleted_at IS NULL AND tenant_id = #{tenantId}
-    </update>
+
 </mapper>

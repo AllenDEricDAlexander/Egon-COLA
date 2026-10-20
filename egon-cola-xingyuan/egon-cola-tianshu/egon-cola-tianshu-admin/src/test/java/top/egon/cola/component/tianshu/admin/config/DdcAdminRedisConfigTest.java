@@ -33,6 +33,9 @@ class DdcAdminRedisConfigTest {
                         TestInfrastructure.class,
                         DdcAdminRedisConfig.class
                 )
+                .withBean("additionalIdpProperties",
+                        top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties.class,
+                        top.egon.cola.platform.tianquan.shoubing.starter.autoconfigure.IdpStarterProperties::new)
                 .withPropertyValues(
                         "egon.cola.platform.tianquan.shoubing.enabled=true",
                         "egon.cola.platform.tianquan.shoubing.issuer=https://tianquan-shoubing.example",
@@ -47,7 +50,7 @@ class DdcAdminRedisConfigTest {
                     );
                     assertThat(context).hasSingleBean(
                             DdcRegistrationCredentialVerifier.class
-                    );
+                    ).hasBean("ddcNonceStore");
                 });
     }
 
@@ -56,6 +59,11 @@ class DdcAdminRedisConfigTest {
 
         @Bean("ddcAdminRedissonClient")
         RedissonClient ddcAdminRedissonClient() {
+            return mock(RedissonClient.class);
+        }
+
+        @Bean("rbac3RuntimeRedissonClient")
+        RedissonClient identityRuntimeRedissonClient() {
             return mock(RedissonClient.class);
         }
 

@@ -58,9 +58,9 @@
         SELECT <include refid="RunColumns"/>, bv.version_no AS base_version_no, pv.version_no AS produced_version_no
         FROM ddc_ai_optimization_run r
         LEFT JOIN ddc_ai_version bv ON bv.tenant_id = r.tenant_id AND bv.resource_id = r.resource_id
-            AND bv.id = r.base_version_id
+            AND bv.id = r.base_version_id AND bv.deleted_at IS NULL
         LEFT JOIN ddc_ai_version pv ON pv.tenant_id = r.tenant_id AND pv.resource_id = r.resource_id
-            AND pv.id = r.produced_version_id
+            AND pv.id = r.produced_version_id AND pv.deleted_at IS NULL
     </sql>
 
     <select id="selectActiveById" resultMap="DdcAiOptimizationRunPOResultMap">

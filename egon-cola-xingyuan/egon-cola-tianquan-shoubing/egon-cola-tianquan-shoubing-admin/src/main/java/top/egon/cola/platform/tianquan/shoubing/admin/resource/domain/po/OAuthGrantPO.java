@@ -27,7 +27,7 @@ import java.util.List;
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_grant", autoResultMap = true)
+@TableName(value = "oauth_grant", schema = "tianquan_oauth", autoResultMap = true)
 public class OAuthGrantPO extends EgonModel<OAuthGrantPO> {
 
     @TableField(value = "client_pk", updateStrategy = FieldStrategy.NEVER)

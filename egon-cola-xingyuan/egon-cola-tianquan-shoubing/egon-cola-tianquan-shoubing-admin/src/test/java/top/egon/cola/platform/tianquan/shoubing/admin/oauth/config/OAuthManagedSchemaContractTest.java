@@ -2,6 +2,7 @@ package top.egon.cola.platform.tianquan.shoubing.admin.oauth.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.validation.Validation;
 import org.apache.shardingsphere.driver.yaml.YamlJDBCConfiguration;
 import org.apache.shardingsphere.infra.util.yaml.YamlEngine;
 import org.junit.jupiter.api.Test;
@@ -10,6 +11,11 @@ import org.springframework.core.env.EnumerablePropertySource;
 import org.springframework.core.env.PropertySource;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.ClassPathResource;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.common.mybatis.routing.EgonColaPhysicalTargetBO;
+import top.egon.cola.component.common.mybatis.routing.EgonColaRoutingProfileBO;
+import top.egon.cola.component.common.mybatis.sharding.EgonColaShardingProperties;
+import top.egon.cola.component.common.mybatis.sharding.bootstrap.EgonColaShardingTopologyValidator;
 
 import javax.sql.DataSource;
 import java.io.IOException;
@@ -68,7 +74,7 @@ class OAuthManagedSchemaContractTest {
             "identity_tenant_membership", "identity_client", "identity_client_secret",
             "identity_client_redirect_uri", "identity_client_resource_grant",
             "identity_signing_key", "identity_resource_server", "identity_audit_log",
-            "identity_outbox_event", "egon_cola_outbox_message"
+            "identity_outbox_event"
     );
     private static final List<String> LEGACY_FLYWAY_SCRIPTS = List.of(
             "V1__create_idp_schema.sql",
@@ -148,12 +154,35 @@ class OAuthManagedSchemaContractTest {
         }
         assertFalse(nativeYaml.contains("identity_client_jwk"));
         assertFalse(nativeYaml.contains("identity_client_audience"));
-        assertEquals(13, countMatches(nativeYaml,
+        assertEquals(12, countMatches(nativeYaml,
                 Pattern.compile("oauth_primary\\.public\\.[a-z0-9_]+")));
         assertEquals(15, countMatches(
                 nativeYaml,
                 Pattern.compile("oauth_primary\\.tianquan_oauth\\.[a-z0-9_]+")
         ));
+    }
+
+    @Test
+    void nativeTopologyRoutesOutboxToItsSingleManagedSchema() throws Exception {
+        EgonColaShardingProperties properties = EgonColaShardingProperties.builder()
+                .mode(EgonColaShardingProperties.ModeEnum.SHARDING)
+                .configStyle(EgonColaShardingProperties.ConfigStyleEnum.NATIVE)
+                .nativeRulesResource("classpath:" + NATIVE_RULES_RESOURCE)
+                .dataSources(List.of(new EgonColaShardingProperties.PhysicalDataSourceProperties(
+                        "oauth_primary", "oauth_primary", EgonColaShardingProperties.DataSourceRoleEnum.PRIMARY,
+                        "org.postgresql.Driver", "jdbc:postgresql://127.0.0.1:5432/topology_only", "topology_only", "")))
+                .build();
+        try (var validators = Validation.buildDefaultValidatorFactory()) {
+            var topology = new EgonColaShardingTopologyValidator(new ValidationUtils(validators.getValidator()))
+                    .validate(properties, requiredResource(NATIVE_RULES_RESOURCE));
+
+            assertEquals(BUSINESS_TABLES.size() + LEGACY_PUBLIC_TABLES.size() + 2, topology.profiles().size());
+            var outbox = topology.profiles().get("egon_cola_outbox_message");
+            assertEquals(EgonColaRoutingProfileBO.TableKindEnum.SINGLE, outbox.kind());
+            assertEquals(1, outbox.actualNodes().size());
+            assertEquals(List.of(new EgonColaPhysicalTargetBO("oauth_primary", "egon_outbox", "egon_cola_outbox_message")),
+                    outbox.actualNodes().get(new EgonColaRoutingProfileBO.PartitionKeyBO(0, 0)));
+        }
     }
 
     @Test

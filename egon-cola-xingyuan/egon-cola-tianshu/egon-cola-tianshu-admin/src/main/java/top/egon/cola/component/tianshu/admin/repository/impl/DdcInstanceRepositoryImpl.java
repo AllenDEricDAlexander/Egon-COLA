@@ -21,6 +21,7 @@ import top.egon.cola.component.tianshu.admin.model.vo.DdcPageResult;
 import top.egon.cola.component.tianshu.admin.repository.DdcInstanceRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -72,12 +73,26 @@ public class DdcInstanceRepositoryImpl extends EgonColaRepository<DdcInstanceMap
     }
     @Override public int markOfflineIfLeaseMatches(String instanceId, String leaseId, String status,
             LocalDateTime updatedAt) {
-        return mapper.markOfflineIfLeaseMatches(tenantId(), instanceId, leaseId, status, updatedAt, actor());
+        Long tenant = tenantId();
+        DdcInstancePO row = mapper.selectByInstanceId(tenant, instanceId);
+        if (row == null) return 0;
+        return mapper.markOfflineIfLeaseMatches(tenant, row.getId(), row.getVersion(),
+                instanceId, leaseId, status, updatedAt, updatedAt.toInstant(ZoneOffset.UTC), actor());
     }
     @Override public int markResourceAdmissionOfflineAt(String resourceServerId, String bizCode,
             String env, String appCode, long resourceVersion, LocalDateTime updatedAt) {
-        return mapper.markResourceAdmissionOffline(tenantId(), resourceServerId, bizCode, env, appCode,
-                resourceVersion, updatedAt, actor());
+        Long tenant = tenantId();
+        String actor = actor();
+        int changed = 0;
+        for (DdcInstancePO row : mapper.selectByScopeAndStatus(tenant, bizCode, env, appCode, "ONLINE")) {
+            if (java.util.Objects.equals(resourceServerId, row.getResourceServerId())
+                    && row.getResourceVersion() != null && row.getResourceVersion() <= resourceVersion) {
+                changed += mapper.markResourceAdmissionOffline(tenant, row.getId(), row.getVersion(),
+                        resourceServerId, bizCode, env, appCode, resourceVersion, updatedAt,
+                        updatedAt.toInstant(ZoneOffset.UTC), actor);
+            }
+        }
+        return changed;
     }
     @Override public DdcInstanceBO insert(DdcInstanceBO command) {
         DdcInstancePO row = converter.toSource(command);

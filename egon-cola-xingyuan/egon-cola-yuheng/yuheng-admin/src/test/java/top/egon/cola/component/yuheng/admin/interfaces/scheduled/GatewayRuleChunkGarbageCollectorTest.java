@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
+import static top.egon.cola.component.yuheng.admin.config.GatewayPersistenceTestSupport.persistenceContext;
+
 import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.BeforeAll;
@@ -46,7 +48,7 @@ class GatewayRuleChunkGarbageCollectorTest {
             Instant.parse("2026-07-26T08:00:00Z");
 
     @Test
-    void publishesYamlWithoutOnlyTheExpiredChunk() {
+    void publishesYamlWithoutOnlyTheExpiredChunk() throws Exception {
         GatewayReleasePublicationRepository journal =
                 mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
@@ -105,7 +107,7 @@ class GatewayRuleChunkGarbageCollectorTest {
     }
 
     @Test
-    void failedYamlPublishIsRetriedOnALaterRun() {
+    void failedYamlPublishIsRetriedOnALaterRun() throws Exception {
         GatewayReleasePublicationRepository journal =
                 mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
@@ -138,7 +140,7 @@ class GatewayRuleChunkGarbageCollectorTest {
     }
 
     @Test
-    void lostPublishResponseConvergesWhenTheLeafIsAlreadyAbsent() {
+    void lostPublishResponseConvergesWhenTheLeafIsAlreadyAbsent() throws Exception {
         GatewayReleasePublicationRepository journal =
                 mock(GatewayReleasePublicationRepository.class);
         DdcManagementClient client = mock(DdcManagementClient.class);
@@ -192,7 +194,7 @@ class GatewayRuleChunkGarbageCollectorTest {
                 client,
                 properties,
                 Clock.fixed(NOW, ZoneOffset.UTC),
-                Duration.ofSeconds(30));
+                Duration.ofSeconds(30), persistenceContext());
     }
 
     private DdcManagementConfig config(String content, long version) {

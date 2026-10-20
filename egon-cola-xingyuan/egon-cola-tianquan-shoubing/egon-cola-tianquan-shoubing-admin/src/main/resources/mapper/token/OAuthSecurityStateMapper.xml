@@ -26,14 +26,14 @@
 
     <select id="selectByTarget" resultMap="OAuthSecurityStatePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_security_state
+        FROM tianquan_oauth.oauth_security_state
         WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
           AND deleted_at IS NULL
     </select>
 
     <select id="selectByTargetForUpdate" resultMap="OAuthSecurityStatePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_security_state
+        FROM tianquan_oauth.oauth_security_state
         WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
           AND deleted_at IS NULL
         FOR UPDATE
@@ -41,7 +41,7 @@
 
     <select id="selectByRevisionAfter" resultMap="OAuthSecurityStatePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_security_state
+        FROM tianquan_oauth.oauth_security_state
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
           AND (revision &gt; #{afterRevision} OR (revision = #{afterRevision} AND id &gt; #{afterId}))
         ORDER BY revision ASC, id ASC
@@ -50,13 +50,13 @@
 
     <select id="selectActiveById" resultMap="OAuthSecurityStatePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_security_state
+        FROM tianquan_oauth.oauth_security_state
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthSecurityStatePOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_security_state
+        FROM tianquan_oauth.oauth_security_state
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -65,7 +65,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_security_state
+        UPDATE tianquan_oauth.oauth_security_state
         SET generation = #{po.generation}, enabled = #{po.enabled}, revision = #{po.revision},
             reason_code = #{po.reasonCode}, version = #{po.version},
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
@@ -74,7 +74,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_security_state
+        UPDATE tianquan_oauth.oauth_security_state
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{po.id}

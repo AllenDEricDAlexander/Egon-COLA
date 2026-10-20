@@ -37,6 +37,9 @@ public final class DdcConfigDataLoader
     public ConfigData load(ConfigDataLoaderContext context,
                            DdcConfigDataResource resource)
             throws IOException, ConfigDataResourceNotFoundException {
+        if (resource.deferInitialLoad()) {
+            return empty(resource);
+        }
         DdcConfigDataFetcher client = context.getBootstrapContext()
                 .get(DdcConfigDataFetcher.class);
         DdcConfigValue value = client.load(resource.resourceName());

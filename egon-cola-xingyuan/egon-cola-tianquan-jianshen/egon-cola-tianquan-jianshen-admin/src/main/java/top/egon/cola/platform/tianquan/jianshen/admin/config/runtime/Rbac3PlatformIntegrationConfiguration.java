@@ -1,6 +1,7 @@
 package top.egon.cola.platform.tianquan.jianshen.admin.config.runtime;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import org.flywaydb.core.Flyway;
 import org.redisson.api.RedissonClient;
@@ -15,6 +16,7 @@ import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
+import org.springframework.orm.jpa.SharedEntityManagerCreator;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.tianshu.model.lease.DdcLeaseSession;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationProperties;
@@ -55,6 +57,20 @@ import top.egon.cola.platform.tianquan.jianshen.admin.authorization.runtime.doma
  */
 @Configuration(proxyBeanMethods = false)
 public class Rbac3PlatformIntegrationConfiguration {
+
+    /** Exposes the transaction-bound EntityManager used by the existing handwritten JPA repositories. */
+    @Bean("jpaSharedEM_entityManagerFactory")
+    @ConditionalOnMissingBean(name = "jpaSharedEM_entityManagerFactory")
+    EntityManager sharedEntityManager(@Qualifier("entityManagerFactory") EntityManagerFactory factory) {
+        return SharedEntityManagerCreator.createSharedEntityManager(factory);
+    }
+
+    /** Shares the configured identity clock with the named persistence and Outbox clock. */
+    @Bean("egonColaMybatisPlusClock")
+    @Primary
+    Clock egonColaMybatisPlusClock(@Qualifier("idpClock") Clock clock) {
+        return clock;
+    }
 
     /**
      * 方法 `rbac3Clock` 按照 `Rbac3PlatformIntegrationConfiguration` 的职责处理输入，完成 `rbac3 Clock` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。

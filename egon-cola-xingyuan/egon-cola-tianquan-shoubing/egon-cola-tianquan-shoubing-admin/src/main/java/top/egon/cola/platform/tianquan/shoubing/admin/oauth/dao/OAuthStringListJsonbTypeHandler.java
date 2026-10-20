@@ -5,12 +5,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.ibatis.type.BaseTypeHandler;
 import org.apache.ibatis.type.JdbcType;
+import org.postgresql.util.PGobject;
 
 import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,7 +28,10 @@ public final class OAuthStringListJsonbTypeHandler extends BaseTypeHandler<List<
             requireText(value);
         }
         try {
-            statement.setObject(index, OBJECT_MAPPER.writeValueAsString(values), Types.OTHER);
+            PGobject json = new PGobject();
+            json.setType("jsonb");
+            json.setValue(OBJECT_MAPPER.writeValueAsString(values));
+            statement.setObject(index, json);
         } catch (JsonProcessingException failure) {
             throw new SQLException("OAUTH_CLIENT_JSON_ARRAY_ENCODE_FAILED", failure);
         }

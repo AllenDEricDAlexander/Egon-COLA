@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.release.controller.scheduled;
 
+import top.egon.cola.component.yuheng.admin.config.GatewayPersistenceContextComponent;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -34,6 +36,8 @@ import top.egon.cola.component.yuheng.admin.release.domain.bo.GatewayChunkCleanu
  */
 @Component
 public class GatewayRuleChunkGarbageCollector {
+
+    private final GatewayPersistenceContextComponent persistenceContext;
 
     /**
      * 中文说明：表示 LOGGER 这一固定值；它属于 {@code GatewayRuleChunkGarbageCollector} 的状态、类型或协议取值，用于保持调用方与所属类型之间的语义一致。
@@ -125,12 +129,14 @@ public class GatewayRuleChunkGarbageCollector {
             ObjectProvider<DdcManagementClient> client,
             GatewayAdminProperties properties,
             @Value("${yuheng.admin.tianshu.publish-timeout:PT30S}")
-            Duration publishTimeout) {
+            Duration publishTimeout,
+            GatewayPersistenceContextComponent persistenceContext) {
         this(journal,
                 client.getIfAvailable(),
                 properties,
                 Clock.systemUTC(),
-                publishTimeout);
+                publishTimeout,
+                persistenceContext);
     }
 
     /**
@@ -148,7 +154,9 @@ public class GatewayRuleChunkGarbageCollector {
             DdcManagementClient client,
             GatewayAdminProperties properties,
             Clock clock,
-            Duration publishTimeout) {
+            Duration publishTimeout,
+            GatewayPersistenceContextComponent persistenceContext) {
+        this.persistenceContext = Objects.requireNonNull(persistenceContext, "persistenceContext");
         this.journal = Objects.requireNonNull(journal, "journal");
         this.client = client;
         this.properties = Objects.requireNonNull(properties, "properties");
@@ -173,7 +181,7 @@ public class GatewayRuleChunkGarbageCollector {
             fixedDelayString =
                     "${yuheng.admin.rule-chunk.cleanup-delay:PT1H}"
     )
-    public void collect() {
+    public void collect() throws Exception {
         collectOnce();
     }
 
@@ -183,13 +191,16 @@ public class GatewayRuleChunkGarbageCollector {
      *
      * 用法 / Usage: 调用方式 / Usage: {@code GatewayRuleChunkGarbageCollector.collectOnce(...)}。调用方应准备合法参数并处理返回值或异常；/ Call it with valid arguments and handle the return value or exception according to the owning component's lifecycle.
      */
-    public void collectOnce() {
-        if (client == null) {
-            return;
-        }
-        journal.findChunkCleanupCandidates(
-                clock.instant().minus(retention())
-        ).forEach(this::delete);
+    public void collectOnce() throws Exception {
+        persistenceContext.call(null, () -> {
+            if (client == null) {
+                return null;
+            }
+            journal.findChunkCleanupCandidates(
+                    clock.instant().minus(retention())
+            ).forEach(this::delete);
+            return null;
+        });
     }
 
     /**

@@ -28,34 +28,50 @@
         trust_version
     </sql>
 
+    <select id="selectActiveById" resultMap="OAuthRealmPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM tianquan_oauth.oauth_realm
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
+    </select>
+
+    <select id="selectActiveByIds" resultMap="OAuthRealmPOResultMap">
+        SELECT <include refid="Columns"/>
+        FROM tianquan_oauth.oauth_realm
+        WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY id ASC
+    </select>
+
     <select id="selectByIssuer" resultMap="OAuthRealmPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_realm
+        FROM tianquan_oauth.oauth_realm
         WHERE tenant_id = #{tenantId} AND issuer = #{issuer} AND deleted_at IS NULL
     </select>
 
     <select id="selectByRealmKey" resultMap="OAuthRealmPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_realm
+        FROM tianquan_oauth.oauth_realm
         WHERE tenant_id = #{tenantId} AND realm_key = #{realmKey} AND deleted_at IS NULL
     </select>
 
     <select id="selectByRealmKeyForUpdate" resultMap="OAuthRealmPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_realm
+        FROM tianquan_oauth.oauth_realm
         WHERE tenant_id = #{tenantId} AND realm_key = #{realmKey} AND deleted_at IS NULL
         FOR UPDATE
     </select>
 
     <select id="selectDirectory" resultMap="OAuthRealmPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_realm
+        FROM tianquan_oauth.oauth_realm
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
         ORDER BY realm_key ASC
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_realm
+        UPDATE tianquan_oauth.oauth_realm
         SET status = #{po.status},
             active_kid = #{po.activeKid},
             trust_version = #{po.trustVersion},
@@ -71,7 +87,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_realm
+        UPDATE tianquan_oauth.oauth_realm
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC',
             version = version + 1,
             update_user_id = #{et.updateUserId},

@@ -29,7 +29,6 @@ rules:
       - oauth_primary.public.identity_resource_server
       - oauth_primary.public.identity_audit_log
       - oauth_primary.public.identity_outbox_event
-      - oauth_primary.public.egon_cola_outbox_message
       - oauth_primary.egon_outbox.egon_cola_outbox_message
       - oauth_primary.egon_outbox.ddl_history
 transaction:

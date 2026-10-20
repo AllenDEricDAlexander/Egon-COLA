@@ -44,7 +44,7 @@ public class EdgeAuthorizedClientRepository implements ServerOAuth2AuthorizedCli
     private static final String PURPOSE = "authorized-client-v2";
 
     @Qualifier("redisson") private final RedissonClient redisson;
-    @Qualifier("clientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
+    @Qualifier("reactiveClientRegistrationRepository") private final ReactiveClientRegistrationRepository registrations;
     @Qualifier("edgeOAuthProperties") private final EdgeOAuthProperties properties;
     @Qualifier("edgeTokenCipher") private final EdgeTokenCipher cipher;
     @Qualifier("edgeClock") private final Clock clock;

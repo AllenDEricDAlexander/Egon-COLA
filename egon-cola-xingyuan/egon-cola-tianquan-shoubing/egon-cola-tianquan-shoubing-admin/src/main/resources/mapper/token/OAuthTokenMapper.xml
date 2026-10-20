@@ -31,20 +31,20 @@
 
     <select id="selectByTokenDigest" resultMap="OAuthTokenPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_token
+        FROM tianquan_oauth.oauth_token
         WHERE tenant_id = #{tenantId} AND token_digest = #{tokenDigest} AND deleted_at IS NULL
     </select>
 
     <select id="selectByTokenDigestForUpdate" resultMap="OAuthTokenPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_token
+        FROM tianquan_oauth.oauth_token
         WHERE tenant_id = #{tenantId} AND token_digest = #{tokenDigest} AND deleted_at IS NULL
         FOR UPDATE
     </select>
 
     <select id="selectByAuthorization" resultMap="OAuthTokenPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_token
+        FROM tianquan_oauth.oauth_token
         WHERE tenant_id = #{tenantId} AND authorization_pk = #{authorizationPk}
           AND token_type = #{tokenType} AND id &gt; #{afterId} AND deleted_at IS NULL
         ORDER BY id ASC
@@ -53,7 +53,7 @@
 
     <select id="selectExpired" resultMap="OAuthTokenPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_token
+        FROM tianquan_oauth.oauth_token
         WHERE tenant_id = #{tenantId} AND expires_at &lt;= #{expiresBefore}
           AND id &gt; #{afterId} AND deleted_at IS NULL
         ORDER BY id ASC
@@ -62,13 +62,13 @@
 
     <select id="selectActiveById" resultMap="OAuthTokenPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_token
+        FROM tianquan_oauth.oauth_token
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthTokenPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_token
+        FROM tianquan_oauth.oauth_token
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -77,7 +77,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_token
+        UPDATE tianquan_oauth.oauth_token
         SET consumed_at = #{po.consumedAt}, revoked_at = #{po.revokedAt},
             metadata_ciphertext = #{po.metadataCiphertext}, version = #{po.version},
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
@@ -87,7 +87,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_token
+        UPDATE tianquan_oauth.oauth_token
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{po.id}

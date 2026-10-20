@@ -16,6 +16,8 @@ spring:
       - org.redisson.spring.starter.RedissonAutoConfigurationV2
   lifecycle:
     timeout-per-shutdown-phase: 20s
+  flyway:
+    enabled: false
 
 server:
   address: 0.0.0.0

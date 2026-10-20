@@ -146,19 +146,19 @@
     </select>
 
     <update id="restoreClientHistory">
-        UPDATE oauth_client
+        UPDATE tianquan_oauth.oauth_client
         SET version = #{version}, create_time = #{createdAt}, update_time = #{updatedAt}
         WHERE tenant_id = #{partitionId} AND client_id = #{clientId} AND deleted_at IS NULL
     </update>
 
     <update id="restoreResourceHistory">
-        UPDATE oauth_resource
+        UPDATE tianquan_oauth.oauth_resource
         SET version = #{version}, create_time = #{createdAt}, update_time = #{updatedAt}
         WHERE tenant_id = #{partitionId} AND resource_server_id = #{resourceServerId} AND deleted_at IS NULL
     </update>
 
     <update id="restoreGrantHistory">
-        UPDATE oauth_grant
+        UPDATE tianquan_oauth.oauth_grant
         SET version = #{version}, create_time = #{createdAt}, update_time = #{updatedAt}
         WHERE tenant_id = #{partitionId} AND client_pk = #{clientPk}
           AND resource_server_id = #{resourceServerId} AND grant_type = #{grantType} AND deleted_at IS NULL
@@ -177,32 +177,32 @@
     </select>
 
     <select id="selectUserByIdentitySub" resultType="top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.po.IdentityUserPO">
-        SELECT * FROM oauth_identity_user
+        SELECT * FROM tianquan_oauth.oauth_identity_user
         WHERE tenant_id = #{partitionId} AND identity_sub = #{identitySub} AND deleted_at IS NULL
     </select>
 
     <select id="selectCredentialByLegacyId" resultType="top.egon.cola.platform.tianquan.shoubing.admin.identity.domain.po.IdentityCredentialPO">
-        SELECT * FROM oauth_identity_credential
+        SELECT * FROM tianquan_oauth.oauth_identity_credential
         WHERE tenant_id = #{partitionId} AND legacy_id = #{legacyId} AND deleted_at IS NULL
     </select>
 
     <select id="selectTenantByExternalId" resultMap="top.egon.cola.platform.tianquan.shoubing.admin.tenant.dao.IdentityTenantDAO.IdentityTenantPOResultMap">
-        SELECT * FROM oauth_identity_tenant
+        SELECT * FROM tianquan_oauth.oauth_identity_tenant
         WHERE tenant_id = #{partitionId} AND identity_tenant_id = #{identityTenantId} AND deleted_at IS NULL
     </select>
 
     <select id="selectMembershipById" resultType="top.egon.cola.platform.tianquan.shoubing.admin.tenant.domain.po.IdentityTenantMembershipPO">
-        SELECT * FROM oauth_identity_membership
+        SELECT * FROM tianquan_oauth.oauth_identity_membership
         WHERE tenant_id = #{partitionId} AND membership_id = #{membershipId} AND deleted_at IS NULL
     </select>
 
     <select id="selectAuditByEventId" resultMap="top.egon.cola.platform.tianquan.shoubing.admin.audit.dao.OAuthAuditMapper.OAuthAuditPOResultMap">
-        SELECT * FROM oauth_audit
+        SELECT * FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{partitionId} AND event_id = #{eventId} AND deleted_at IS NULL
     </select>
 
     <insert id="insertUserMigration">
-        INSERT INTO oauth_identity_user
+        INSERT INTO tianquan_oauth.oauth_identity_user
             (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
              identity_sub, username, username_normalized, display_name, status, failed_login_count,
              locked_until, last_login_at)
@@ -214,7 +214,7 @@
     </insert>
 
     <insert id="insertCredentialMigration">
-        INSERT INTO oauth_identity_credential
+        INSERT INTO tianquan_oauth.oauth_identity_credential
             (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
              legacy_id, identity_sub, credential_type, password_hash, password_changed_at,
              must_change_password, status)
@@ -226,7 +226,7 @@
     </insert>
 
     <insert id="insertTenantMigration">
-        INSERT INTO oauth_identity_tenant
+        INSERT INTO tianquan_oauth.oauth_identity_tenant
             (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
              identity_tenant_id, tenant_code, tenant_name, status, settings)
         VALUES
@@ -237,7 +237,7 @@
     </insert>
 
     <insert id="insertMembershipMigration">
-        INSERT INTO oauth_identity_membership
+        INSERT INTO tianquan_oauth.oauth_identity_membership
             (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
              membership_id, identity_tenant_id, identity_sub, status)
         VALUES
@@ -247,7 +247,7 @@
     </insert>
 
     <insert id="insertAuditMigration">
-        INSERT INTO oauth_audit
+        INSERT INTO tianquan_oauth.oauth_audit
             (id, tenant_id, version, create_time, create_user_id, update_time, update_user_id, deleted_at,
              event_id, event_type, subject_ref, client_ref, token_ref, resource_ref, result, reason_code,
              trace_id, occurred_at, payload, audit_kind, public_id, actor_sub, target_sub, identity_tenant_id)

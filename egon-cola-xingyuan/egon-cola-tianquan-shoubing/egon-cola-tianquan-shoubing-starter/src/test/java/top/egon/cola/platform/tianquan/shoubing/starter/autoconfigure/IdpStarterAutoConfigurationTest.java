@@ -68,6 +68,20 @@ import static org.mockito.ArgumentMatchers.any;
 
 class IdpStarterAutoConfigurationTest {
 
+    @Test
+    void explicitlyConfiguredAuditFailsClosedWhenHostDependenciesAreMissing() {
+        new ApplicationContextRunner()
+                .withUserConfiguration(IdpStarterAutoConfiguration.OAuthAuditConfiguration.class)
+                .withPropertyValues(
+                        "egon.cola.platform.tianquan.shoubing.audit.spool-directory=/tmp/owned-audit-fixture",
+                        "egon.cola.platform.tianquan.shoubing.audit.hmac-key-file=/tmp/owned-audit-fixture/key")
+                .run(context -> {
+                    assertThat(context).hasFailed();
+                    assertThat(context.getStartupFailure()).hasStackTraceContaining("tokenUsageAuditComponent")
+                            .hasStackTraceContaining("RedissonClient");
+                });
+    }
+
     private final ApplicationContextRunner contextRunner =
             new ApplicationContextRunner()
                     .withConfiguration(AutoConfigurations.of(
@@ -81,6 +95,21 @@ class IdpStarterAutoConfigurationTest {
                             "egon.cola.platform.tianquan.shoubing.jwk-set-uri=https://tianquan-shoubing.local/oauth2/jwks",
                             "egon.cola.platform.tianquan.shoubing.resource-server-id=resource-tianquan-jianshen-prod",
                             "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/prod/permission/tianquan-jianshen");
+
+    @Test
+    void customNamedHostEndpointPolicyReplacesTheDefaultAndStillCreatesTheBearerFilter() {
+        var policy = new top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy(
+                List.of(), List.of("/internal/**"));
+        contextRunner.withBean("customHostEndpointPolicy",
+                        top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy.class,
+                        () -> policy)
+                .run(context -> {
+                    assertThat(context).hasNotFailed().doesNotHaveBean("idpEndpointAuthenticationPolicy")
+                            .hasSingleBean(IdpBearerAuthenticationFilter.class);
+                    assertThat(context.getBean(top.egon.cola.platform.tianquan.shoubing.starter.security.IdpEndpointAuthenticationPolicy.class))
+                            .isSameAs(policy);
+                });
+    }
 
     @Test
     void configuredRpcAndOldOverloadsUseNamedDependenciesWithoutAServiceClientForProviders() throws Exception {
@@ -332,7 +361,7 @@ class IdpStarterAutoConfigurationTest {
                 .tokenUri("https://tianquan-shoubing.local/oauth2/token")
                 .issuerUri("https://tianquan-shoubing.local")
                 .build();
-        new ApplicationContextRunner()
+        var serviceClientRunner = new ApplicationContextRunner()
                 .withConfiguration(AutoConfigurations.of(
                         IdpStarterAutoConfiguration.class,
                         IdpSecurityObservationAutoConfiguration.class,
@@ -352,17 +381,24 @@ class IdpStarterAutoConfigurationTest {
                         "egon.cola.platform.tianquan.shoubing.resource-uri=https://api.example/tianquan-shoubing",
                         "egon.cola.platform.tianquan.shoubing.service-client.app-id=orders-app",
                         "egon.cola.platform.tianquan.shoubing.service-client.registration-id=egon-tianquan-shoubing",
-                        "egon.cola.platform.tianquan.shoubing.service-client.credential-versions.egon-tianquan-shoubing=8")
+                        "egon.cola.platform.tianquan.shoubing.service-client.credential-versions.egon-tianquan-shoubing=8");
+        serviceClientRunner.run(context -> {
+            assertThat(context).hasNotFailed();
+            assertThat(context).hasSingleBean(OAuth2AuthorizedClientManager.class);
+            assertThat(context).hasSingleBean(IdpServiceOAuth2Client.class);
+            assertThat(context).hasBean("serviceTokenWebClient");
+            assertThat(context.getBean("idpStarterProperties", IdpStarterProperties.class)
+                    .getServiceClient().getCredentialVersions()).containsEntry("egon-tianquan-shoubing", 8L);
+        });
+        var bootService = new org.springframework.security.oauth2.client.InMemoryOAuth2AuthorizedClientService(
+                new InMemoryClientRegistrationRepository(registration));
+        serviceClientRunner.withBean("authorizedClientService",
+                        org.springframework.security.oauth2.client.OAuth2AuthorizedClientService.class, () -> bootService)
                 .run(context -> {
-                    assertThat(context).hasNotFailed();
-                    assertThat(context).hasSingleBean(
-                            OAuth2AuthorizedClientManager.class);
-                    assertThat(context).hasSingleBean(IdpServiceOAuth2Client.class);
-                    assertThat(context).hasBean("serviceTokenWebClient");
-                    assertThat(context.getBean(
-                            "idpStarterProperties", IdpStarterProperties.class)
-                            .getServiceClient().getCredentialVersions())
-                            .containsEntry("egon-tianquan-shoubing", 8L);
+                    assertThat(context).hasNotFailed().hasSingleBean(IdpServiceOAuth2Client.class);
+                    assertThat(context).doesNotHaveBean("idpOAuth2AuthorizedClientService");
+                    assertThat(context.getBean(org.springframework.security.oauth2.client.OAuth2AuthorizedClientService.class))
+                            .isSameAs(bootService);
                 });
     }
 

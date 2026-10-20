@@ -25,7 +25,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthSe
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName("oauth_security_state")
+@TableName(value = "oauth_security_state", schema = "tianquan_oauth")
 public class OAuthSecurityStatePO extends EgonModel<OAuthSecurityStatePO> {
 
     @TableField(value = "target_type", updateStrategy = FieldStrategy.NEVER)

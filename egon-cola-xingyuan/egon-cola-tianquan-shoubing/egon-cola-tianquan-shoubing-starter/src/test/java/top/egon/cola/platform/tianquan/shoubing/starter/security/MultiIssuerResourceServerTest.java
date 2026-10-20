@@ -69,6 +69,27 @@ class MultiIssuerResourceServerTest {
     }
 
     @Test
+    void validatedSecurityReadersSupportBootClassBasedProxies() {
+        var properties = new IdpStarterProperties();
+        var redisson = mock(RedissonClient.class);
+        new ApplicationContextRunner()
+                .withConfiguration(AutoConfigurations.of(org.springframework.boot.autoconfigure.validation.ValidationAutoConfiguration.class))
+                .withPropertyValues("spring.aop.proxy-target-class=true")
+                .withBean("oauthRevocationReader", RedisOAuthRevocationReader.class,
+                        () -> new RedisOAuthRevocationReader(redisson, new TrustedIssuerRegistry(properties),
+                                new ObjectMapper(), properties))
+                .withBean("legacyIssuerCutoverPolicy", LegacyIssuerCutoverPolicy.class,
+                        () -> new LegacyIssuerCutoverPolicy(redisson, properties))
+                .run(context -> {
+                    assertThat(context).hasNotFailed();
+                    assertThat(org.springframework.aop.support.AopUtils.isCglibProxy(context.getBean("oauthRevocationReader"))).isTrue();
+                    var legacy = context.getBean("legacyIssuerCutoverPolicy", LegacyIssuerCutoverPolicy.class);
+                    assertThat(org.springframework.aop.support.AopUtils.isCglibProxy(legacy)).isTrue();
+                    assertThat(legacy.isLegacyIssuerHint(null)).isFalse();
+                });
+    }
+
+    @Test
     void unavailableIsDistinctFromAnInvalidCredential() {
         boolean unavailablePermitted = Arrays.stream(
                         AccessTokenVerification.class.getPermittedSubclasses())

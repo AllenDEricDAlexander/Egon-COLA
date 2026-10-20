@@ -16,7 +16,6 @@ import java.nio.file.Path;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.List;
 import java.util.function.Supplier;
 
@@ -195,7 +194,10 @@ class IdentityMpPersistenceContractTest {
         JsonNode settings = new ObjectMapper().readTree("{\"region\":\"cn\"}");
 
         setValue.invoke(handler, statement, 1, settings, JdbcType.OTHER);
-        verify(statement).setObject(1, settings.toString(), Types.OTHER);
+        var json = org.mockito.ArgumentCaptor.forClass(org.postgresql.util.PGobject.class);
+        verify(statement).setObject(org.mockito.ArgumentMatchers.eq(1), json.capture());
+        assertEquals("jsonb", json.getValue().getType());
+        assertEquals(settings.toString(), json.getValue().getValue());
 
         Method readValue = handlerType.getDeclaredMethod(
                 "getNullableResult", ResultSet.class, String.class

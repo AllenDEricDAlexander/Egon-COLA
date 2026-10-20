@@ -475,6 +475,10 @@ class EdgeLoginContractTest {
                     EdgeResourceAuthorizationContractTest.Fixture.TIME_CLOCK, fixture.idp, fixture.mapper);
             var security = new WebFilterChainProxy(api, browser);
             WebTestClient client = WebTestClient.bindToWebHandler(exchange -> { exchange.getResponse().setStatusCode(org.springframework.http.HttpStatus.NO_CONTENT); return exchange.getResponse().setComplete(); }).webFilter(security).build();
+            for (String path : List.of("/actuator/health", "/actuator/health/liveness", "/actuator/health/readiness")) {
+                client.get().uri(path).exchange().expectStatus().isNoContent()
+                        .expectHeader().doesNotExist("Location").expectHeader().doesNotExist("Set-Cookie");
+            }
             client.get().uri("/login/oauth2/code/app-a?code=synthetic-code&state=missing-request").exchange().expectStatus().isBadRequest().expectHeader().doesNotExist("Location");
             client.get().uri("/bff/session").exchange().expectStatus().isUnauthorized().expectHeader().valueEquals("Cache-Control", "no-store");
             client.post().uri("/bff/logout").exchange().expectStatus().isForbidden();
@@ -527,6 +531,54 @@ class EdgeLoginContractTest {
                 environment);
         assertThat(localFactory).isInstanceOf(LettuceConnectionFactory.class);
         ((LettuceConnectionFactory) localFactory).destroy();
+    }
+
+    @Test
+    void edgePrimaryRedissonUsesTheSharedEndpointDatabaseAndCredentials() throws Exception {
+        EdgeSessionRedisConfiguration configuration = new EdgeSessionRedisConfiguration();
+        RedisProperties properties = new RedisProperties();
+        properties.setUrl("rediss://redis.example:6380");
+        properties.setDatabase(3);
+        properties.setUsername("edge-test");
+        properties.setPassword("fixture-secret");
+        properties.setTimeout(Duration.ofMillis(750));
+        RedissonClient primary = mock(RedissonClient.class);
+        Environment environment = mock(Environment.class);
+        try (var redisson = org.mockito.Mockito.mockStatic(org.redisson.Redisson.class)) {
+            ArgumentCaptor<org.redisson.config.Config> config =
+                    ArgumentCaptor.forClass(org.redisson.config.Config.class);
+            redisson.when(() -> org.redisson.Redisson.create(any(org.redisson.config.Config.class)))
+                    .thenReturn(primary);
+
+            assertThat(configuration.edgePrimaryRedisson(properties, properties.getUrl(), environment))
+                    .isSameAs(primary);
+
+            redisson.verify(() -> org.redisson.Redisson.create(config.capture()));
+            var server = config.getValue().useSingleServer();
+            assertThat(server.getAddress()).isEqualTo(properties.getUrl());
+            assertThat(server.getDatabase()).isEqualTo(3);
+            assertThat(server.getUsername()).isEqualTo("edge-test");
+            assertThat(server.getPassword()).isEqualTo("fixture-secret");
+            assertThat(server.getTimeout()).isEqualTo(750);
+        }
+        var bean = EdgeSessionRedisConfiguration.class.getMethod("edgePrimaryRedisson",
+                RedisProperties.class, String.class, Environment.class)
+                .getAnnotation(org.springframework.context.annotation.Bean.class);
+        assertThat(bean.name()).containsExactly("redisson");
+        assertThat(bean.destroyMethod()).isEqualTo("shutdown");
+    }
+
+    @Test
+    void edgePrimaryRedissonRejectsEndpointDriftAndNonlocalPlaintextBeforeConnecting() {
+        EdgeSessionRedisConfiguration configuration = new EdgeSessionRedisConfiguration();
+        RedisProperties properties = new RedisProperties();
+        properties.setUrl("rediss://redis.example:6380");
+        Environment environment = mock(Environment.class);
+        assertThatThrownBy(() -> configuration.edgePrimaryRedisson(properties,
+                "rediss://redis.example:6381", environment)).isInstanceOf(IllegalStateException.class);
+        properties.setUrl("redis://127.0.0.1:6379");
+        assertThatThrownBy(() -> configuration.edgePrimaryRedisson(properties,
+                properties.getUrl(), environment)).isInstanceOf(IllegalStateException.class);
     }
 
     @Test

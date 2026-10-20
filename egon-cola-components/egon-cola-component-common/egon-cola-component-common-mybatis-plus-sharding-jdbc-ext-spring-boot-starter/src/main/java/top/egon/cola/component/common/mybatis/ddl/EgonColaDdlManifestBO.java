@@ -13,7 +13,12 @@ import java.util.Set;
 /**
  * Ordered, content-addressed classpath SQL; previously applied entries remain an immutable prefix.
  */
-public record EgonColaDdlManifestBO(@NotBlank String family, @NotEmpty List<@NotNull @Valid ScriptBO> scripts) {
+public record EgonColaDdlManifestBO(@NotBlank String family, @NotEmpty List<@NotNull @Valid ScriptBO> scripts,
+                                  @Pattern(regexp = "[0-9]{8}_[0-9]{3}") String freshBaselineVersion) {
+
+    public EgonColaDdlManifestBO(String family, List<ScriptBO> scripts) {
+        this(family, scripts, null);
+    }
 
     public EgonColaDdlManifestBO {
         if (!Set.of("light", "light-open", "service", "service-open", "web", "web-open", "component-outbox", "tianshu",
@@ -29,6 +34,19 @@ public record EgonColaDdlManifestBO(@NotBlank String family, @NotEmpty List<@Not
             }
             previous = script.version();
         }
+        if (freshBaselineVersion != null && scripts.stream().noneMatch(script -> script.version().equals(freshBaselineVersion))) {
+            throw new IllegalArgumentException("Fresh baseline must name a declared migration version");
+        }
+    }
+
+    /** Fresh databases record only their baseline and later scripts; existing histories retain their original prefix. */
+    public int startingIndex(String firstInstalledVersion) {
+        if (freshBaselineVersion != null && (firstInstalledVersion == null || freshBaselineVersion.equals(firstInstalledVersion))) {
+            for (int index = 0; index < scripts.size(); index++) {
+                if (freshBaselineVersion.equals(scripts.get(index).version())) { return index; }
+            }
+        }
+        return 0;
     }
 
     public record ScriptBO(@NotBlank @Pattern(regexp = "[0-9]{8}_[0-9]{3}") String version, @NotBlank String path,

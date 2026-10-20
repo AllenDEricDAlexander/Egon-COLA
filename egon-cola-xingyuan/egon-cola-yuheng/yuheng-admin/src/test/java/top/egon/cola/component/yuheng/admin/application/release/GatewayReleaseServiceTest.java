@@ -87,7 +87,7 @@ class GatewayReleaseServiceTest {
         );
         assertThat(fixture.draft.getBasedOnReleaseId())
                 .isEqualTo("release-1");
-        verify(fixture.drafts).flush();
+        verify(fixture.drafts).save(org.mockito.ArgumentMatchers.any(GatewayDraftBO.class));
     }
 
     @Test
@@ -108,7 +108,7 @@ class GatewayReleaseServiceTest {
                 eq(NOW)
         );
         assertThat(fixture.draft.getBasedOnReleaseId()).isNull();
-        verify(fixture.drafts, never()).flush();
+        verify(fixture.drafts, never()).save(org.mockito.ArgumentMatchers.any(GatewayDraftBO.class));
     }
 
     @Test

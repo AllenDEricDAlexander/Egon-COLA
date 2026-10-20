@@ -24,7 +24,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.tenant.dao.IdentityTenantS
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_identity_tenant", autoResultMap = true)
+@TableName(value = "oauth_identity_tenant", schema = "tianquan_oauth", autoResultMap = true)
 public class IdentityTenantPO extends EgonModel<IdentityTenantPO> {
 
     @TableField(value = "identity_tenant_id", updateStrategy = FieldStrategy.NEVER)

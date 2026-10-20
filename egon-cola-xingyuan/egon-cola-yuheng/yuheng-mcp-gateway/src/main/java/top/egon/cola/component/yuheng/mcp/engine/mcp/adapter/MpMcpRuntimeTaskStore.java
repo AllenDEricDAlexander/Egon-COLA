@@ -3,7 +3,6 @@ package top.egon.cola.component.yuheng.mcp.engine.mcp.adapter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.stereotype.Component;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
@@ -57,7 +56,6 @@ import java.util.concurrent.Callable;
  * {@code DELETE} SQL.
  */
 @Slf4j
-@Component("mcpRuntimeTaskStore")
 @RequiredArgsConstructor
 @Validated
 public class MpMcpRuntimeTaskStore implements McpTaskStore {

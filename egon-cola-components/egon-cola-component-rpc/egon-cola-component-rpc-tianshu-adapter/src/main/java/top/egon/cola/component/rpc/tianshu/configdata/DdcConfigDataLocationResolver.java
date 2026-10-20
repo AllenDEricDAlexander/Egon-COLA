@@ -11,6 +11,8 @@ import top.egon.cola.component.tianshu.autoconfigure.properties.DdcTenantPropert
 import top.egon.cola.component.tianshu.format.DdcConfigFormatStrategyRegistry;
 import top.egon.cola.component.tianshu.format.DdcYamlConfigFormatStrategy;
 import top.egon.cola.component.rpc.tianshu.autoconfigure.DdcRpcProperties;
+import top.egon.cola.component.common.id.autoconfigure.IdGeneratorProperties;
+import top.egon.cola.component.common.id.snowflake.SnowflakeIdGenerator;
 
 import java.util.List;
 
@@ -97,6 +99,16 @@ public final class DdcConfigDataLocationResolver
                 )
                 .orElseGet(DdcRpcProperties::new);
         validate(properties, rpcProperties);
+        if (properties.isDeferInitialLoad() && !location.isOptional()) {
+            throw new IllegalArgumentException("defer-initial-load requires optional:tianshu config");
+        }
+        // ConfigData RPC precedes bean auto-configuration and uses the same explicit process-wide ID binding.
+        IdGeneratorProperties idProperties = context.getBinder()
+                .bind(IdGeneratorProperties.PREFIX, Bindable.of(IdGeneratorProperties.class))
+                .orElseGet(IdGeneratorProperties::new);
+        if (idProperties.isEnabled()) {
+            SnowflakeIdGenerator.initialize(idProperties.getMachineId(), idProperties.getMaxClockBackward());
+        }
         context.getBootstrapContext().registerIfAbsent(
                 DdcConfigDataFetcher.class,
                 bootstrapContext -> new DdcConfigDataFetcher(
@@ -112,7 +124,8 @@ public final class DdcConfigDataLocationResolver
                 properties.getEnv(),
                 properties.getNamespace(),
                 properties.getAppCode(),
-                resourceName
+                resourceName,
+                properties.isDeferInitialLoad()
         ));
     }
 

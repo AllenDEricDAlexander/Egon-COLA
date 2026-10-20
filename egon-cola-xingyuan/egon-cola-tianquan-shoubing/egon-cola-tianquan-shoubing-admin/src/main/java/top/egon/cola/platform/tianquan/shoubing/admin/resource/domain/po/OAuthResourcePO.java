@@ -25,7 +25,7 @@ import top.egon.cola.component.common.mybatis.model.EgonModel;
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName("oauth_resource")
+@TableName(value = "oauth_resource", schema = "tianquan_oauth")
 public class OAuthResourcePO extends EgonModel<OAuthResourcePO> {
 
     @TableField(value = "resource_server_id", updateStrategy = FieldStrategy.NEVER)

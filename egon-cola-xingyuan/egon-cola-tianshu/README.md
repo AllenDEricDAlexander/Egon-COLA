@@ -485,6 +485,17 @@ name in `spring.config.import` must match the `resourceName` stored by Admin. Re
 `egon.cola.component.tianshu.*`, `spring.config.*`, or Spring profile-control keys is
 rejected as a whole, so Tianshu connection and bootstrap controls remain local.
 
+For control-plane cold starts, `egon.cola.component.tianshu.defer-initial-load=true`
+with an optional import installs an empty dynamic source at version zero and leaves
+the first remote pull to the runtime coordinator. The default is `false`; required
+imports reject this option. A valid lease and successful runtime reconciliation
+remain necessary for `READY`. When peers must start first, use the existing
+`consistency.fail-fast=false` and `registry.http.fail-fast=false` settings under
+the same Tianshu prefix so registration can recover after startup.
+ConfigData RPC initializes the ID engine from the
+explicit local `egon.cola.component.id.machine-id` and `max-clock-backward` settings
+before its first call; later ID auto-configuration verifies the same binding.
+
 Configuration parsing is an extension point implemented by
 `DdcConfigFormatStrategy` and `DdcConfigFormatStrategyRegistry`. YAML is the only
 built-in strategy and delegates parsing to Spring Boot's `YamlPropertySourceLoader`;

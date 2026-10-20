@@ -2364,8 +2364,8 @@ class XingyuanResourceAuthorizationIT {
 
     static void verifyLightConnection(Connection connection, JsonNode receipt) throws java.sql.SQLException {
         try (var query = connection.prepareStatement("""
-                SELECT current_database(), inet_server_addr()::text, inet_server_port(), d.oid::bigint,
-                       obj_description(d.oid,'pg_database'), pg_get_userbyid(d.datdba),
+                SELECT current_database(), host(inet_server_addr()), inet_server_port(), d.oid::bigint,
+                       shobj_description(d.oid,'pg_database'), pg_get_userbyid(d.datdba),
                        current_setting('transaction_read_only'), current_setting('transaction_isolation')
                 FROM pg_database d WHERE d.datname=current_database()
                 """)) {

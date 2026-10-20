@@ -35,7 +35,7 @@ class DdcAiFeedbackPersistenceIT {
             + "WHERE f.tenant_id = ? AND f.deleted_at IS NULL AND f.resource_id = ? "
             + "AND f.explicit_score IS NULL AND f.judge_attempts < 3 "
             + "AND (f.judge_state = 'PENDING' OR (f.judge_state = 'JUDGING' AND f.judge_lease_until < ?)) "
-            + "ORDER BY f.occurred_at, f.id LIMIT ? FOR UPDATE SKIP LOCKED";
+            + "ORDER BY f.occurred_at, f.id LIMIT ? FOR UPDATE";
 
     @Test
     void usageIdIsUniquePerTenantButReusableAcrossTenants() throws Exception {
@@ -91,10 +91,13 @@ class DdcAiFeedbackPersistenceIT {
             connection.commit();
         }
         try {
-            CountDownLatch bothSelected = new CountDownLatch(2);
+            CountDownLatch ready = new CountDownLatch(2);
+            CountDownLatch start = new CountDownLatch(1);
             try (ExecutorService pool = Executors.newFixedThreadPool(2)) {
-                Future<List<Long>> a = pool.submit(() -> claimAndHold(fixture, 25, bothSelected));
-                Future<List<Long>> b = pool.submit(() -> claimAndHold(fixture, 25, bothSelected));
+                Future<List<Long>> a = pool.submit(() -> claimAndHold(fixture, 25, ready, start));
+                Future<List<Long>> b = pool.submit(() -> claimAndHold(fixture, 25, ready, start));
+                assertThat(ready.await(10, TimeUnit.SECONDS)).isTrue();
+                start.countDown();
                 List<Long> first = a.get(60, TimeUnit.SECONDS);
                 List<Long> second = b.get(60, TimeUnit.SECONDS);
                 Set<Long> union = new HashSet<>(first);
@@ -155,12 +158,13 @@ class DdcAiFeedbackPersistenceIT {
         }
     }
 
-    private static List<Long> claimAndHold(Fixture fixture, int limit, CountDownLatch bothSelected) throws Exception {
+    private static List<Long> claimAndHold(Fixture fixture, int limit, CountDownLatch ready,
+            CountDownLatch start) throws Exception {
         try (Connection connection = open()) {
+            ready.countDown();
+            if (!start.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("CLAIM_START_TIMEOUT");
             Instant now = Instant.now();
             List<Long> ids = claim(connection, fixture, limit, now);
-            bothSelected.countDown();
-            bothSelected.await(30, TimeUnit.SECONDS);
             try (PreparedStatement update = connection.prepareStatement(
                     "UPDATE ddc_ai_usage_feedback_t0 SET judge_state = 'JUDGING', judge_attempts = judge_attempts + 1, "
                             + "judge_lease_until = ?, version = version + 1 WHERE tenant_id = ? AND id = ?")) {
@@ -180,6 +184,7 @@ class DdcAiFeedbackPersistenceIT {
     static List<Long> claim(Connection connection, Fixture fixture, int limit, Instant now) throws SQLException {
         List<Long> ids = new ArrayList<>();
         try (PreparedStatement statement = connection.prepareStatement(CLAIM_SQL)) {
+            statement.setQueryTimeout(5);
             statement.setLong(1, fixture.tenantId());
             statement.setLong(2, fixture.resourceId());
             statement.setTimestamp(3, Timestamp.from(now));
@@ -196,7 +201,8 @@ class DdcAiFeedbackPersistenceIT {
         List<Long> ids = new ArrayList<>();
         try (PreparedStatement select = connection.prepareStatement(
                 "SELECT f.id FROM ddc_ai_usage_feedback_t0 f WHERE f.tenant_id = ? AND f.deleted_at IS NULL "
-                        + "AND f.occurred_at < ? ORDER BY f.id LIMIT ? FOR UPDATE SKIP LOCKED")) {
+                        + "AND f.occurred_at < ? ORDER BY f.id LIMIT ? FOR UPDATE")) {
+            select.setQueryTimeout(5);
             select.setLong(1, fixture.tenantId());
             select.setTimestamp(2, Timestamp.from(before));
             select.setInt(3, limit);

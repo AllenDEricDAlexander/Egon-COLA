@@ -24,7 +24,7 @@ import java.time.Duration;
 @RequiredArgsConstructor
 @Slf4j
 public class EdgeOAuthTokenRevocationClient {
-    @Qualifier("clientRegistrationRepository")
+    @Qualifier("reactiveClientRegistrationRepository")
     private final ReactiveClientRegistrationRepository registrations;
     @Qualifier("edgeOAuthProperties")
     private final EdgeOAuthProperties properties;

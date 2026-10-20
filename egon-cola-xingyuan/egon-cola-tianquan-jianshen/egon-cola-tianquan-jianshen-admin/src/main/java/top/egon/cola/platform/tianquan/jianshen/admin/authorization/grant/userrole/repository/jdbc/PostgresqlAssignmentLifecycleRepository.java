@@ -74,15 +74,12 @@ public class PostgresqlAssignmentLifecycleRepository
             int batchSize,
             ChangePublisher publisher) {
         List<DueAssignment> due = new ArrayList<>(batchSize);
-        due.addAll(lockDue("PENDING", "valid_from <= :now", "ACTIVATED",
-                now, batchSize));
+        due.addAll(lockDue("PENDING", "ACTIVATED", now, batchSize));
         if (due.size() < batchSize) {
-            due.addAll(lockDue("ACTIVE", "valid_to is not null and valid_to <= :now",
-                    "EXPIRED", now, batchSize - due.size()));
+            due.addAll(lockDue("ACTIVE", "EXPIRED", now, batchSize - due.size()));
         }
         if (due.size() < batchSize) {
-            due.addAll(lockDue("SUSPENDED", "valid_to is not null and valid_to <= :now",
-                    "EXPIRED", now, batchSize - due.size()));
+            due.addAll(lockDue("SUSPENDED", "EXPIRED", now, batchSize - due.size()));
         }
         for (DueAssignment candidate : due) {
             UserRoleAssignmentPO assignment = entityManager.find(
@@ -117,7 +114,6 @@ public class PostgresqlAssignmentLifecycleRepository
      * Usage: provide contract-compliant arguments before calling `lockDue`, then continue the business flow using its result, exception, or side effect.
      *
      * @param status 输入参数 `status`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
-     * @param timePredicate 输入参数 `timePredicate`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param changeType 输入参数 `changeType`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param now 输入参数 `now`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
      * @param limit 输入参数 `limit`，用于确定本次操作的范围或内容；input value used to determine the operation's scope or content.
@@ -126,7 +122,6 @@ public class PostgresqlAssignmentLifecycleRepository
     @SuppressWarnings("unchecked")
     private List<DueAssignment> lockDue(
             String status,
-            String timePredicate,
             String changeType,
             Instant now,
             int limit) {
@@ -134,13 +129,8 @@ public class PostgresqlAssignmentLifecycleRepository
             return List.of();
         }
         String sql = """
-                select id
-                  from rbac3_user_role_assignment
-                 where status = :status and %s
-                 order by coalesce(valid_to, valid_from), id
-                 for update skip locked
-                 limit :batchSize
-                """.formatted(timePredicate);
+                select rbac3_claim_due_assignments(:status, :now, :batchSize)
+                """;
         List<Number> ids = entityManager.createNativeQuery(sql)
                 .setParameter("status", status)
                 .setParameter("now", now)

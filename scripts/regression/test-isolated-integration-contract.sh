@@ -267,11 +267,13 @@ elif query.startswith('COMMENT ON DATABASE'):
     name, comment = re.search(r'COMMENT ON DATABASE "([a-z0-9_]+)" IS \'([^\']+)\'', query).groups()
     next(row for row in rows if row['databaseName'] == name)['ownerComment'] = comment
     state.write_text(json.dumps(rows))
+    if os.environ.get('XINGYUAN_FAKE_OUTCOME') == 'comment-unknown': sys.exit(1)
 elif 'XINGYUAN_ORIGINAL_DATABASES' in query:
     changed = os.environ.get('XINGYUAN_FAKE_OUTCOME') == 'original-db-changed' and bool(rows)
     print(json.dumps([{'databaseName':'controlled-original','oid':999 if changed else 41,'databaseOwner':'controlled-original-owner'}]))
 else:
     assert query.startswith('SELECT coalesce')
+    assert "shobj_description(oid, 'pg_database')" in query
     print(json.dumps(rows))
 """),
         ("redis-cli", r"""#!/usr/bin/env python3
@@ -379,6 +381,12 @@ sys.exit(1)
         assert all(path.read_bytes() == content for path, content in before.items()), "Resume changed a committed checkpoint or secret"
         assert "psql-create" not in calls.read_text() and "openssl-generate" not in calls.read_text()
         calls.unlink()
+        idp_receipt=current_task/'evidence/db-idp.json'
+        idp_bytes=idp_receipt.read_bytes();idp_receipt.unlink()
+        prepare_run('same owner resume restores only its missing receipt',0,current,current_task,file,current_env,resume=True)
+        assert idp_receipt.read_bytes()==idp_bytes
+        assert 'psql-create' not in calls.read_text() and 'psql-comment' not in calls.read_text() and 'openssl-generate' not in calls.read_text()
+        calls.unlink()
         preserved=(current_task/"evidence/original-databases.json").read_bytes()
         (current_task/"evidence/original-databases.json").unlink()
         prepare_run("resume cannot reconstruct a missing original before-state",9,current,current_task,file,current_env,resume=True)
@@ -430,6 +438,22 @@ sys.exit(1)
             current_env.pop("XINGYUAN_FAKE_OUTCOME")
             prepare_run("unknown commit freezes ownerless target", 3, current, current_task, file, current_env, resume=True)
             assert calls.read_text().count("psql-create") == 1
+    calls.unlink(missing_ok=True)
+    current,current_task,file,current_env=preparation_fixture()
+    current_env['XINGYUAN_FAKE_OUTCOME']='comment-unknown'
+    prepare_run('committed ownership comment with unknown return preserves the target',9,current,current_task,file,current_env)
+    original_fact=json.loads(Path(current_env['XINGYUAN_FAKE_STATE']).read_text())[0]
+    assert original_fact['ownerComment']=='xingyuan-it:'+current['runId']+':'+hashlib.sha256(file.read_bytes()).hexdigest()
+    assert not (current_task/'evidence/db-idp.json').exists()
+    assert calls.read_text().count('psql-create')==1 and calls.read_text().count('psql-comment')==1
+    current_env.pop('XINGYUAN_FAKE_OUTCOME')
+    prepare_run('missing receipt still requires explicit resume',3,current,current_task,file,current_env)
+    assert calls.read_text().count('psql-create')==1 and calls.read_text().count('psql-comment')==1
+    prepare_run('explicit resume reconciles committed ownership before continuing',0,current,current_task,file,current_env,resume=True)
+    restored=json.loads((current_task/'evidence/db-idp.json').read_text())
+    assert all(restored[key]==value for key,value in original_fact.items())
+    assert calls.read_text().count('psql-create')==9 and calls.read_text().count('psql-comment')==9
+    assert len(json.loads(Path(current_env['XINGYUAN_FAKE_STATE']).read_text()))==9
     calls.unlink(missing_ok=True)
     # A matching PID/start time/task marker is insufficient when the actual executable artifact differs.
     current, current_task, file, current_env = preparation_fixture()
@@ -1066,7 +1090,7 @@ Path(os.environ['XINGYUAN_FAKE_CALLS']).write_text('public-owner-once\n')
             failures.append('original database maintenance audit lost the original identities')
     def controlled_nginx_query(argv,**options):
         if argv==['ps','-axo','pid=,uid=,lstart=,comm=']:
-            return types.SimpleNamespace(returncode=0,stdout='501 '+str(os.getuid())+' Thu Oct 15 00:00:00 2026 /controlled/nginx\n502 0 Thu Oct 15 00:00:00 2026 /controlled/unrelated\n',stderr='')
+            return types.SimpleNamespace(returncode=0,stdout='501 '+str(os.getuid())+' Thu Oct 15 00:00:00 2026 /controlled/nginx\n502 0 Thu Oct 15 00:00:00 2026 /controlled/unrelated\n503 -2 Thu Oct 15 00:00:00 2026 /usr/libexec/dhcp6d\n',stderr='')
         if argv[0]=='ps':
             assert argv[1:3]==['-p','501']
             return types.SimpleNamespace(returncode=0,stdout='Thu Oct 15 00:00:00 2026 S 501 nginx: master process /controlled/nginx\n',stderr='')
@@ -1089,6 +1113,17 @@ Path(os.environ['XINGYUAN_FAKE_CALLS']).write_text('public-owner-once\n')
             failures.append('unreadable original nginx was treated as absent')
         except SystemExit as rejected:
             if rejected.code!=6: failures.append('unreadable nginx returned wrong dependency exit')
+    def negative_nginx_uid(argv,**options):
+        response=controlled_nginx_query(argv,**options)
+        if argv==['ps','-axo','pid=,uid=,lstart=,comm=']:
+            response.stdout=response.stdout.replace('501 '+str(os.getuid())+' ', '501 -2 ', 1)
+        return response
+    with patch.object(subprocess,'run',side_effect=negative_nginx_uid):
+        try:
+            runtime_module.original_nginx_facts(control_manifest)
+            failures.append('original nginx accepted a negative owner uid')
+        except SystemExit as rejected:
+            if rejected.code!=6: failures.append('negative nginx uid returned wrong dependency exit')
     redis_fixture={'serverReference':'a'*64,'observedAtMs':1000,'databases':{'0':{
         'b'*40:{'type':'string','valueSha1':'c'*40,'expiresAtMs':-1},
         'd'*40:{'type':'hash','valueSha1':'e'*40,'expiresAtMs':2000}}}}
@@ -1124,14 +1159,23 @@ Path(os.environ['XINGYUAN_FAKE_CALLS']).write_text('public-owner-once\n')
         redis_queries.append(argv[10])
         if argv[10]=='INFO':
             value='run_id:'+'a'*40+'\r\n' if argv[-1]=='server' else '# Keyspace\r\ndb0:keys=2,expires=1,avg_ttl=1000\r\ndb'+str(control_manifest['redis']['database'])+':keys=1,expires=0,avg_ttl=0\r\n'
+            if redis_fault.get('raw-info') or redis_fault.get('raw-info-invalid') or redis_fault.get('raw-info-duplicate'):
+                if argv[-1]=='server':
+                    value='# Server\r\n'+value
+                    if redis_fault.get('raw-info-invalid'): value=value.replace('run_id:', 'other_id:')
+                    if redis_fault.get('raw-info-duplicate'): value+='run_id:'+'b'*40+'\r\n'
+                return types.SimpleNamespace(returncode=0,stdout=value.encode(),stderr=b'')
         elif argv[10]=='TIME': value=['1792022400','0']
         else:
             assert argv[10]=='EVAL_RO' and argv[6]=='0' and argv[-2]=='0'
             assert "redis.call('SCAN'" in argv[11] and "redis.call('PEXPIRETIME'" in argv[11]
+            assert 'memory>4194304' in argv[11] and '#value>4194304' in argv[11] and 'bytes>33554432' in argv[11]
             assert not any("redis.call('"+command in argv[11] for command in ('SET','DEL','EXPIRE','FLUSH','CONFIG','ACL'))
             value=['0', [['b'*40,'string','c'*40,-1,12],['d'*40,'hash','e'*40,1792022401000,24]]]
             if redis_fault.get('repeat'): value=['7',value[1]]
-            if redis_fault.get('large'): value[1][0][4]=1048577
+            if redis_fault.get('within-key-limit'): value[1][0][4]=4194304
+            if redis_fault.get('large'): value[1][0][4]=4194305
+            if redis_fault.get('byte-budget'): value[1]=[[format(index,'040x'),'string','c'*40,-1,4194304] for index in range(9)]
             if redis_fault.get('overflow'): value[1]=[[format(index,'040x'),'string','c'*40,-1,12] for index in range(513)]
             if redis_fault.get('invalid'): value[1][0][3]=True
         return types.SimpleNamespace(returncode=1 if redis_fault.get('unreadable') else 0,stdout=json.dumps(value).encode(),stderr=b'')
@@ -1143,7 +1187,13 @@ Path(os.environ['XINGYUAN_FAKE_CALLS']).write_text('public-owner-once\n')
                      'status':'CAPTURED','snapshot':observed})
         proof=runtime_module.verify_original_redis(control_manifest,audit_digest,audit_directory)
         assert proof['originalKeyCount']==2 and proof['scope']=='ORIGINAL_REDIS_SAMPLED_KEY_VALUES_ONLY'
-        for fault in ('repeat','large','overflow','unreadable','invalid'):
+        redis_fault['raw-info']=True
+        raw_observed=runtime_module.original_redis_facts(control_manifest)
+        assert raw_observed==observed
+        redis_fault.clear();redis_fault['within-key-limit']=True
+        assert runtime_module.original_redis_facts(control_manifest)==observed
+        redis_fault.clear()
+        for fault in ('repeat','large','byte-budget','overflow','unreadable','invalid','raw-info-invalid','raw-info-duplicate'):
             redis_fault.clear();redis_fault[fault]=True
             try:
                 runtime_module.original_redis_facts(control_manifest)
@@ -1439,6 +1489,9 @@ sys.exit(module.run_authorization_browser(manifest,hashlib.sha256(Path(sys.argv[
     frontend_receipt = runtime_module.prepare_frontend_profiles(frontend_manifest, control_digest)
     if set(frontend_receipt["profiles"]) != set(frontend_locations):
         failures.append("frontend generator did not publish five task profiles")
+    sandbox_source = source / frontend_locations["portal-web"] / "public/wujie-empty.html"
+    if (control_root / "portal-public/wujie-empty.html").read_bytes() != sandbox_source.read_bytes():
+        failures.append("frontend generator did not preserve the same-origin sandbox document")
     if runtime_module.prepare_frontend_profiles(frontend_manifest, control_digest) != frontend_receipt:
         failures.append("same frontend facts changed immutable output")
     actual_config_probe = ("import assert from 'node:assert/strict';const {default:c}=await import(process.argv[1]);"
@@ -1465,6 +1518,8 @@ sys.exit(module.run_authorization_browser(manifest,hashlib.sha256(Path(sys.argv[
     portal_manifest = json.loads((control_root / "portal-public/portal-manifest/isolated.json").read_text())
     if portal_manifest["tianshu"]["url"] != "https://127.0.0.1:28443/apps/tianshu/":
         failures.append("Portal manifest did not retain the canonical same-origin mount")
+    if portal_manifest["tianquan-jianshen"]["standaloneUrl"] != "https://127.0.0.1:28443/apps/tianquan-jianshen/iam/roles":
+        failures.append("Portal standalone entry did not use the actual Jianshen IAM roles route")
     if old_control_registry is None:
         (control_root / "secrets/runtime-registry.json").unlink()
     else:
@@ -1886,6 +1941,22 @@ sys.exit(module.run_authorization_browser(manifest,hashlib.sha256(Path(sys.argv[
         runtime_module.wait_owned_https(probe_manifest,{"id":"nginx"},html_url,html=True)
         if tls_transport.load_cert_chain.call_count != 1:
             failures.append("public origin received the task monitor client certificate")
+        management_manifest=dict(probe_manifest,processes=[*probe_manifest['processes'],
+                                 {'id':'biz','port':28180,'additionalPorts':[28182]},
+                                 {'id':'mcp','port':28185,'additionalPorts':[28186]}])
+        for role,port in (('biz',28182),('mcp',28186)):
+            url='https://127.0.0.1:'+str(port)+'/actuator/health/readiness'
+            probe_opener.open=Mock(return_value=ProbeResponse(url,b'{"status":"UP"}'))
+            assert runtime_module.wait_owned_https(management_manifest,{'id':role},url,ready=True)=={'status':'UP'}
+            assert probe_opener.open.call_count==1
+        for port in (28122,28183):
+            probe_opener.open=Mock()
+            try:
+                runtime_module.wait_owned_https(management_manifest,{'id':'biz'},'https://127.0.0.1:'+str(port)+'/actuator/health/readiness',ready=True)
+                failures.append('HTTPS observer accepted an undeclared or RPC-only port')
+            except SystemExit as rejected:
+                if rejected.code!=3: failures.append('undeclared HTTPS management port returned wrong rejection')
+            assert probe_opener.open.call_count==0
     # Fresh XML evidence is mandatory; stale, skipped or zero-selected reports never prove a live run.
     import time
     junit_file = root / "controlled-junit.xml"

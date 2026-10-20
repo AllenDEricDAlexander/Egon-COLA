@@ -130,11 +130,12 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
       return
     }
     onState({ type: 'LOAD' })
-    void startApp({
+    // A cancelled StrictMode effect must not create a sandbox that the next mount replaces while loading.
+    void Promise.resolve().then(() => disposed ? undefined : startApp({
       name: manifest.key,
       url: childUrl,
       el: host,
-      attrs: {src: 'about:blank'},
+      attrs: {src: new URL(`${import.meta.env.BASE_URL}wujie-empty.html`, window.location.origin).toString()},
       degradeAttrs: {title: manifest.displayName, style: 'display:block;width:100%;height:100%;border:0;box-shadow:none'},
       sync: false,
       fiber: false,
@@ -161,7 +162,7 @@ export const WujieChild = ({ manifest, context, onState }: WujieChildProps) => {
         code: 'CHILD_LOAD_ERROR',
         message: 'Child asset failed to load',
       }),
-    })
+    }))
       .then((destroy) => {
         const destroyFunction = typeof destroy === 'function'
           ? destroy as () => unknown

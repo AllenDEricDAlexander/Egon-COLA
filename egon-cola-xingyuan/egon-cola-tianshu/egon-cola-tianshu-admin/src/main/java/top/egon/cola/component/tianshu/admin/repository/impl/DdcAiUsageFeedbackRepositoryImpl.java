@@ -116,7 +116,16 @@ public class DdcAiUsageFeedbackRepositoryImpl extends EgonColaRepository<DdcAiUs
         List<Long> ids = mapper.selectExpiredIdsForUpdate(tenantId, before, limit);
         if (ids.isEmpty()) return 0;
         String actor = Optional.ofNullable(MDC.get("userId")).filter(value -> !value.isBlank()).orElse(SYSTEM_ACTOR);
-        return mapper.softDeleteByIds(tenantId, ids, Instant.now(), actor);
+        Instant updateTime = Instant.now();
+        int changed = 0;
+        for (Long id : ids) {
+            DdcAiUsageFeedbackPO row = mapper.selectActiveById(tenantId, id);
+            if (row != null) {
+                row.setUpdateUserId(actor).setUpdateTime(updateTime);
+                if (removeById(row)) changed++;
+            }
+        }
+        return changed;
     }
 
     private static Long tenantId() {

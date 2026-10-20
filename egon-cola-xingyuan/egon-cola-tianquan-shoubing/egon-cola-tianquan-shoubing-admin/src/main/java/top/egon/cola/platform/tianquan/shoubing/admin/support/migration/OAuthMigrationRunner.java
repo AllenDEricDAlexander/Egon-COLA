@@ -223,6 +223,7 @@ public class OAuthMigrationRunner implements ApplicationRunner {
     }
 
     @Validated
+    @Profile("oauth-migration")
     @ConfigurationProperties(prefix = "egon.tianquan-shoubing.oauth.migration")
     public record MigrationProperties(
             boolean enabled,

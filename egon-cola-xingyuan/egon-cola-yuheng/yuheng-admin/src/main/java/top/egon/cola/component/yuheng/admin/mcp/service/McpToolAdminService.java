@@ -857,7 +857,7 @@ public class McpToolAdminService {
             Map<String, Object> summary,
             Instant now) {
         draft.touch(required(changeReason, "changeReason"), actor.actorId(), now);
-        drafts.flush();
+        draft = drafts.save(draft);
         var result = new top.egon.cola.component.yuheng.admin.mcp.domain.vo.McpMutationResultVO(
                 draft.getRevision(),
                 resourceId,

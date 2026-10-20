@@ -57,13 +57,14 @@ class EgonColaDdlInitializationTest {
         var order = inOrder(jdbc.connection(), jdbc.sql(), jdbc.historyInsert());
         order.verify(jdbc.connection()).setAutoCommit(false);
         order.verify(jdbc.sql()).execute(contains("CREATE TABLE runner_test"));
+        order.verify(jdbc.sql()).execute(contains("CREATE TABLE IF NOT EXISTS ddl_history"));
         order.verify(jdbc.historyInsert()).executeUpdate();
         order.verify(jdbc.connection()).commit();
         verify(jdbc.connection(), never()).rollback();
         assertThat(jdbc.committed().get()).hasSize(1);
         assertThat(runner().run(List.of(target))).singleElement()
                 .satisfies(result -> assertThat(result.status()).isEqualTo(EgonColaDdlResult.StatusEnum.SKIPPED));
-        verify(jdbc.sql(), times(2)).execute(anyString());
+        verify(jdbc.sql(), times(3)).execute(anyString());
         verify(jdbc.historyInsert(), times(1)).executeUpdate();
     }
 
@@ -179,7 +180,7 @@ class EgonColaDdlInitializationTest {
         }).when(jdbc.connection()).commit();
         assertThat(runner().run(List.of(target("primary", jdbc.source(), manifest(1)))))
                 .singleElement().satisfies(result -> assertThat(result.status()).isEqualTo(EgonColaDdlResult.StatusEnum.APPLIED));
-        verify(jdbc.sql(), times(2)).execute(anyString());
+        verify(jdbc.sql(), times(3)).execute(anyString());
         verify(jdbc.source(), times(2)).getConnection();
     }
 
@@ -190,7 +191,7 @@ class EgonColaDdlInitializationTest {
         assertThatThrownBy(() -> runner().run(List.of(target("primary", jdbc.source(), manifest(1)))))
                 .hasMessageContaining("COMMIT_UNKNOWN");
         assertThat(jdbc.committed().get()).isEmpty();
-        verify(jdbc.sql(), times(2)).execute(anyString());
+        verify(jdbc.sql(), times(3)).execute(anyString());
     }
 
     @Test

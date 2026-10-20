@@ -185,6 +185,10 @@ class GatewayDraftTransportWorkflowTest {
         AtomicReference<top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayRouteDraftBO> route =
                 new AtomicReference<>();
         when(drafts.findById("group-1")).thenReturn(Optional.of(draft));
+        when(drafts.save(any(GatewayDraftBO.class))).thenAnswer(invocation -> {
+            GatewayDraftBO saved = invocation.getArgument(0);
+            return saved.setRevision(saved.getRevision() + 1);
+        });
         when(store.routes("group-1")).thenAnswer(ignored ->
                 route.get() == null ? List.of() : List.of(route.get()));
         when(store.policies("group-1")).thenReturn(List.of());

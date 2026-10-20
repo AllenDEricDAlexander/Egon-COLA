@@ -29,8 +29,8 @@ public final class IdentityProfileDirectory {
 
     @EgonRpcReference(
             mode = RpcReferenceMode.DIRECT,
-            bizCode = "permission",
-            appCode = "tianquan-shoubing",
+            bizCode = "${egon.cola.platform.tianquan.shoubing.identity-directory.biz-code:permission}",
+            appCode = "${egon.cola.platform.tianquan.shoubing.identity-directory.app-code:tianquan-shoubing}",
             timeoutMs = 1500)
     private IdentityDirectoryRpc rpc;
 

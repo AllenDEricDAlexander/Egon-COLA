@@ -15,6 +15,12 @@
       "version": "20261017_001",
       "path": "db/egon-mp/V20261017_001__tianshu_ai_feedback_optimization.sql",
       "sha256": "ea388ac5115c1e6e35604cf52da16599c17e8be43fbe41d0e8cddb3d3a2ecac6"
+    },
+    {
+      "version": "20261018_001",
+      "path": "db/egon-mp/V20261018_001__tianshu_fresh_baseline_and_constraints.sql",
+      "sha256": "acdf95ef39c35ce673558b6027b4641bbc7f0cad674e7e902c7c695f81b3a6b1"
     }
-  ]
+  ],
+  "freshBaselineVersion": "20261018_001"
 }

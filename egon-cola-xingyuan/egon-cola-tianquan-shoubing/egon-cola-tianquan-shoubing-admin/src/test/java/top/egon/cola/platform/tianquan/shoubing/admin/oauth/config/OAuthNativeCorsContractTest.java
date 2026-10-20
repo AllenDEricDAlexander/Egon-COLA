@@ -17,6 +17,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.support.security.IdpSecuri
 import top.egon.cola.platform.tianquan.shoubing.admin.oauth.controller.filter.LegacyOAuthRetirementFilter;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 import static org.springframework.security.test.web.servlet.setup.SecurityMockMvcConfigurers.springSecurity;
@@ -41,6 +42,12 @@ class OAuthNativeCorsContractTest {
 
     @AfterAll
     static void close() { if (context != null) context.close(); }
+
+    @Test
+    void specializedSecurityChainRemainsReachableBeforeTheDenyAllFallback() throws Exception {
+        mvc.perform(get("/v3/api-docs")).andExpect(status().isUnauthorized());
+        mvc.perform(get("/unmatched-path")).andExpect(status().isForbidden());
+    }
 
     @Test
     void allowsOnlyTheFourNativeResourcesWithoutCredentialsOrBody() throws Exception {
@@ -122,6 +129,16 @@ class OAuthNativeCorsContractTest {
     @Configuration(proxyBeanMethods = false)
     @Import(IdpSecurityConfig.class)
     static class CorsConfiguration {
+        @Bean("fixtureOpenApiSecurity")
+        @org.springframework.core.annotation.Order(100)
+        org.springframework.security.web.SecurityFilterChain openApi(
+                org.springframework.security.config.annotation.web.builders.HttpSecurity http) throws Exception {
+            return http.securityMatcher("/v3/api-docs/**")
+                    .authorizeHttpRequests(authorize -> authorize.anyRequest().authenticated())
+                    .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(
+                            new org.springframework.security.web.authentication.HttpStatusEntryPoint(org.springframework.http.HttpStatus.UNAUTHORIZED)))
+                    .build();
+        }
         @Bean
         static org.springframework.beans.factory.config.BeanFactoryPostProcessor removeFixtureFallback() {
             return factory -> ((org.springframework.beans.factory.support.BeanDefinitionRegistry) factory)

@@ -11,6 +11,12 @@ egon:
         lifecycle:
           history-read-statements: [top.egon.cola.component.tianshu.admin.dao.DdcAiResourceMapper.selectIncludingDeletedById]
           restore-statements: []
+          statement-policies:
+            "[top.egon.cola.component.tianshu.admin.dao.DdcAiOptimizationRunMapper.selectMaxRunNo]":
+              scope: ALL_PARENT
+              table: ddc_ai_optimization_run
+              key-column: resource_id
+              parent-table: ddc_ai_resource
         sharding:
           enabled: true
           mode: SHARDING

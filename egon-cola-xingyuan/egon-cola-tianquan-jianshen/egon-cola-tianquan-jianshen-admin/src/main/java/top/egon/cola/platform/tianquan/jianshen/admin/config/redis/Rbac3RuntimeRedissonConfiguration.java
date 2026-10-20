@@ -6,6 +6,7 @@ import org.redisson.api.RedissonClient;
 import org.redisson.codec.JsonJacksonCodec;
 import org.redisson.config.Config;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +30,14 @@ import java.time.Duration;
         name = "redis-enabled",
         havingValue = "true")
 public class Rbac3RuntimeRedissonConfiguration {
+
+    /** Exposes the host connection under Common cache's explicit integration name. */
+    @Bean(name = "redissonClient", destroyMethod = "")
+    @ConditionalOnMissingBean(name = "redissonClient")
+    @ConditionalOnProperty(prefix = "egon.cola.component.cache", name = "enabled", havingValue = "true", matchIfMissing = true)
+    RedissonClient applicationCacheRedissonClient(@Qualifier("rbac3RuntimeRedissonClient") RedissonClient client) {
+        return client;
+    }
 
     /**
      * 方法 `rbac3RuntimeRedissonClient` 按照 `Rbac3RuntimeRedissonConfiguration` 的职责处理输入，完成 `rbac3 Runtime Redisson Client` 操作并返回结果或产生声明的副作用；调用方应遵守参数和异常契约。

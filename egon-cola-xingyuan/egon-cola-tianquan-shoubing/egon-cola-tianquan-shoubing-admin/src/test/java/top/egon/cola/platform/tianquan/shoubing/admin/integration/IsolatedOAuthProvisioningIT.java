@@ -166,6 +166,8 @@ public class IsolatedOAuthProvisioningIT {
                 Map.entry("biz", "operations"), Map.entry("mcp", "operations"), Map.entry("llm", "default"),
                 Map.entry("native-light", "dev"), Map.entry("native-web", "dev"), Map.entry("native-service", "dev"), Map.entry("native-agent", "dev"));
 
+    static final Set<String> PLATFORM_RUNTIME_ROLES = Set.of("shoubing", "jianshen", "tianshu", "yuheng", "edge", "biz", "mcp", "llm");
+
     @TempDir
     Path temporaryRepository;
 
@@ -683,6 +685,29 @@ public class IsolatedOAuthProvisioningIT {
     }
 
     @Test
+    void tenantServiceGrantRecipeUsesTheCommittedRealmWithoutMutatingTheRecipe() {
+        var registry = runtimeRegistryFixture(intent(), "a".repeat(64));
+        var input = UpsertClientResourceGrantDTO.builder()
+                .grantType(top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType.CLIENT_CREDENTIALS)
+                .allowedScopes(Set.of("service:authorization:decide")).expectedResourceVersion(1L).build();
+        var first = IsolatedOAuthProvisioningComponent.grantForPreparedRealm(registry.getRealms().get("default"), input);
+        var second = IsolatedOAuthProvisioningComponent.grantForPreparedRealm(registry.getRealms().get("tenant-b"), input);
+        assertThat(first.getTenantId()).isEqualTo("1001");
+        assertThat(second.getTenantId()).isEqualTo("1002");
+        assertThat(input.getTenantId()).isNull();
+        assertThat(first.getAllowedScopes()).isEqualTo(input.getAllowedScopes());
+        assertThat(first.getExpectedResourceVersion()).isEqualTo(1L);
+        assertThat(first.getExpectedGrantVersion()).isNull();
+        assertThat(IsolatedOAuthProvisioningComponent.grantForPreparedRealm(registry.getRealms().get("platform"), input)).isSameAs(input);
+        input.setTenantId("1001");
+        assertThatThrownBy(() -> IsolatedOAuthProvisioningComponent.grantForPreparedRealm(registry.getRealms().get("tenant-b"), input))
+                .hasMessage("XINGYUAN_TARGET_UNSAFE");
+        input.setTenantId(null).setGrantType(top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType.USER_DELEGATION);
+        assertThat(IsolatedOAuthProvisioningComponent.grantForPreparedRealm(registry.getRealms().get("default"), input)).isSameAs(input);
+        assertThat(input.getTenantId()).isNull();
+    }
+
+    @Test
     void confidentialClientPublicationIsPrivateTransactionalAndReconciledWithoutRetry() throws Exception {
         var manifest = intent();
         Path secrets = Files.createDirectories(Path.of(manifest.getRuntimeRoot()).resolve("secrets"),
@@ -934,6 +959,21 @@ public class IsolatedOAuthProvisioningIT {
         return new GuardedPhysicalDataSource(physicalDataSource, receipt);
     }
 
+    @Test
+    void guardedPhysicalDataSourceKeepsShardingSphereConnectionMetadata() {
+        var source = new DriverManagerDataSource("jdbc:postgresql://127.0.0.1:5432/owned", "owned-user", "owned-password");
+        var guarded = guardPhysicalDataSource(source, new IsolatedDatabaseReceiptDTO());
+        var metadata = org.apache.shardingsphere.infra.datasource.pool.props.creator.DataSourcePoolPropertiesCreator.create(guarded);
+        assertThat(metadata.getConnectionPropertySynonyms().getStandardProperties())
+                .containsEntry("url", source.getUrl()).containsEntry("username", source.getUsername())
+                .containsEntry("password", source.getPassword());
+    }
+
+    @Test
+    void shardingSphereFederationUsesTheJvmGuavaSupplierContract() {
+        assertThatCode(org.apache.calcite.sql.fun.SqlStdOperatorTable::instance).doesNotThrowAnyException();
+    }
+
     static DataSource physicalDataSource(VerifiedDatabaseInputsBO inputs) throws IOException {
         validateDatabaseReceipt(inputs.getManifest(), inputs.getManifestSha256(), "idp", inputs.getReceipt());
         String expectedUrl = "jdbc:postgresql://127.0.0.1:5432/" + DATABASE_NAMES.get("idp");
@@ -998,9 +1038,23 @@ public class IsolatedOAuthProvisioningIT {
     }
 
     @lombok.RequiredArgsConstructor
-    private static class GuardedPhysicalDataSource extends AbstractDataSource {
+    public static class GuardedPhysicalDataSource extends AbstractDataSource {
         private final DataSource delegate;
         private final IsolatedDatabaseReceiptDTO receipt;
+
+
+        // ShardingSphere inspects JavaBean connection properties before using the guarded connections.
+        public String getUrl() {
+            return delegate instanceof DriverManagerDataSource source ? source.getUrl() : null;
+        }
+
+        public String getUsername() {
+            return delegate instanceof DriverManagerDataSource source ? source.getUsername() : null;
+        }
+
+        public String getPassword() {
+            return delegate instanceof DriverManagerDataSource source ? source.getPassword() : null;
+        }
 
         @Override
         public Connection getConnection() throws SQLException {
@@ -1117,6 +1171,7 @@ public class IsolatedOAuthProvisioningIT {
         requireOptIn(System.getenv("XINGYUAN_ISOLATED_INTEGRATION"));
         var inputs = readVerifiedDatabaseInputs(manifestFile, receiptFile, repository, "idp");
         var context = new AnnotationConfigApplicationContext();
+        context.getBeanFactory().setConversionService(org.springframework.boot.convert.ApplicationConversionService.getSharedInstance());
         context.setBeanNameGenerator(new org.springframework.context.annotation.AnnotationBeanNameGenerator());
         context.getEnvironment().getPropertySources().addFirst(new MapPropertySource("isolatedIdentityInputs", Map.of(
                 "xingyuan.isolated.manifest-file", manifestFile.toString(),
@@ -1225,6 +1280,23 @@ public class IsolatedOAuthProvisioningIT {
                 }
             }
         } catch (IOException | RuntimeException failure) {
+            Throwable cause = failure;
+            for (int depth = 0; cause != null && depth < 8; depth++, cause = cause.getCause()) {
+                System.err.println("XINGYUAN_FAILURE_TYPE " + cause.getClass().getName());
+                if (cause instanceof jakarta.validation.ConstraintDeclarationException) {
+                    System.err.println("XINGYUAN_VALIDATION_DECLARATION " + cause.getMessage());
+                }
+                if (cause.getClass().getName().equals("org.apache.shardingsphere.infra.exception.kernel.metadata.TableNotFoundException")) {
+                    System.err.println("XINGYUAN_MISSING_TABLE " + cause.getMessage());
+                }
+                if (cause instanceof org.postgresql.util.PSQLException sqlFailure) {
+                    System.err.println("XINGYUAN_SQL_STATE " + sqlFailure.getSQLState());
+                    var identifier = java.util.regex.Pattern.compile("(?:relation|column|schema) \\\"([A-Za-z0-9_.]+)\\\"")
+                            .matcher(sqlFailure.getServerErrorMessage() == null ? "" : sqlFailure.getServerErrorMessage().getMessage());
+                    if (identifier.find()) { System.err.println("XINGYUAN_SQL_IDENTIFIER " + identifier.group(1)); }
+                }
+                Arrays.stream(cause.getStackTrace()).limit(12).forEach(frame -> System.err.println("  at " + frame));
+            }
             String code = failure.getMessage();
             if (code == null || !code.matches("XINGYUAN_(INPUT_INVALID|TARGET_UNSAFE|INPUT_UNAVAILABLE|STATE_CONFLICT|DEPENDENCY_UNAVAILABLE|PARTIAL|COMMIT_UNKNOWN)")) {
                 code = failure instanceof org.springframework.transaction.TransactionException
@@ -1314,6 +1386,7 @@ public class IsolatedOAuthProvisioningIT {
             }
         }
         var context = new AnnotationConfigApplicationContext();
+        context.getBeanFactory().setConversionService(org.springframework.boot.convert.ApplicationConversionService.getSharedInstance());
         context.setBeanNameGenerator(new org.springframework.context.annotation.AnnotationBeanNameGenerator());
         Map<String, Object> properties = new java.util.LinkedHashMap<>();
         properties.put("xingyuan.isolated.manifest-file", manifestFile.toString());
@@ -1612,7 +1685,7 @@ public class IsolatedOAuthProvisioningIT {
     }
 
     @TestConfiguration(proxyBeanMethods = false)
-    @EnableTransactionManagement
+    @EnableTransactionManagement(proxyTargetClass = true)
     @MapperScan(basePackages = {
             "top.egon.cola.platform.tianquan.shoubing.admin.identity.dao",
             "top.egon.cola.platform.tianquan.shoubing.admin.tenant.dao",
@@ -1718,9 +1791,12 @@ public class IsolatedOAuthProvisioningIT {
         DataSource dataSource(
                 @Qualifier("isolatedPhysicalDataSource") DataSource physical,
                 @Qualifier("isolatedOwnershipGuard") Runnable guard,
+                @Qualifier("isolatedVerifiedDatabaseInputs") VerifiedDatabaseInputsBO inputs,
                 @Qualifier("egonColaShardingLogicalDataSourceFactory")
                 EgonColaShardingDataSourceBootstrapper.LogicalDataSourceFactory factory,
                 @Qualifier("isolatedOAuthTopology") EgonColaShardingTopologyValidator.TopologyBO topology) throws Exception {
+            guard.run();
+            prepareOwnedIdentitySchemas(physical, inputs.getReceipt());
             guard.run();
             return factory.create(Map.of("oauth_primary", physical), topology.yaml());
         }
@@ -1798,8 +1874,8 @@ public class IsolatedOAuthProvisioningIT {
     static void verifyDatabaseConnection(Connection connection, IsolatedDatabaseReceiptDTO receipt)
             throws SQLException {
         try (var query = connection.prepareStatement("""
-                SELECT current_database(), inet_server_addr()::text, inet_server_port(),
-                       d.oid::bigint, obj_description(d.oid, 'pg_database'), pg_get_userbyid(d.datdba)
+                SELECT current_database(), host(inet_server_addr()), inet_server_port(),
+                       d.oid::bigint, shobj_description(d.oid, 'pg_database'), pg_get_userbyid(d.datdba)
                 FROM pg_database d WHERE d.datname = current_database()
                 """)) {
             query.setQueryTimeout(5);
@@ -1813,6 +1889,114 @@ public class IsolatedOAuthProvisioningIT {
                 }
             }
         }
+    }
+
+    static void prepareOwnedIdentitySchemas(DataSource physical, IsolatedDatabaseReceiptDTO receipt) throws SQLException {
+        if (!DATABASE_NAMES.get("idp").equals(receipt.getDatabaseName())) {
+            throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+        }
+        try (Connection connection = physical.getConnection()) {
+            verifyDatabaseConnection(connection, receipt);
+            if (!connection.getAutoCommit()) {
+                throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+            }
+            connection.setAutoCommit(false);
+            boolean commitAttempted = false;
+            try {
+                try (var lock = connection.prepareStatement("SELECT pg_advisory_xact_lock(?)")) {
+                    lock.setQueryTimeout(5);
+                    lock.setLong(1, receipt.getOid());
+                    lock.execute();
+                }
+                Set<String> existing = ownedIdentitySchemas(connection, receipt.getDatabaseOwner());
+                // These namespaces are an operations prerequisite of both original managed-DDL owners.
+                for (String schema : List.of("tianquan_oauth", "egon_outbox")) {
+                    if (existing.contains(schema)) { continue; }
+                    String owner = '"' + receipt.getDatabaseOwner().replace("\"", "\"\"") + '"';
+                    try (var create = connection.prepareStatement("CREATE SCHEMA \"" + schema + "\" AUTHORIZATION " + owner)) {
+                        create.setQueryTimeout(5);
+                        create.execute();
+                    }
+                }
+                if (!ownedIdentitySchemas(connection, receipt.getDatabaseOwner()).equals(Set.of("tianquan_oauth", "egon_outbox"))) {
+                    throw new IllegalStateException("XINGYUAN_PARTIAL");
+                }
+                verifyDatabaseConnection(connection, receipt);
+                commitAttempted = true;
+                connection.commit();
+            } catch (SQLException | RuntimeException failure) {
+                try { connection.rollback(); }
+                catch (SQLException rollbackFailure) { failure.addSuppressed(rollbackFailure); }
+                if (commitAttempted) { throw new IllegalStateException("XINGYUAN_COMMIT_UNKNOWN", failure); }
+                throw failure;
+            }
+        }
+    }
+
+    private static Set<String> ownedIdentitySchemas(Connection connection, String expectedOwner) throws SQLException {
+        Set<String> schemas = new HashSet<>();
+        try (var query = connection.prepareStatement("SELECT nspname, pg_get_userbyid(nspowner) FROM pg_namespace "
+                + "WHERE nspname IN ('tianquan_oauth','egon_outbox') ORDER BY nspname")) {
+            query.setQueryTimeout(5);
+            try (var rows = query.executeQuery()) {
+                while (rows.next()) {
+                    String schema = rows.getString(1);
+                    if (!Set.of("tianquan_oauth", "egon_outbox").contains(schema)
+                            || !expectedOwner.equals(rows.getString(2)) || !schemas.add(schema)) {
+                        throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+                    }
+                }
+            }
+        }
+        return schemas;
+    }
+
+    @Test
+    void identitySchemaPreparationRejectsForeignOwnersBeforeAnyDdl() throws Exception {
+        var physical = Mockito.mock(DataSource.class);
+        var connection = Mockito.mock(Connection.class);
+        var ownershipQuery = Mockito.mock(PreparedStatement.class);
+        var lock = Mockito.mock(PreparedStatement.class);
+        var schemaQuery = Mockito.mock(PreparedStatement.class);
+        var databaseRows = Mockito.mock(ResultSet.class);
+        var schemaRows = Mockito.mock(ResultSet.class);
+        var receipt = IsolatedDatabaseReceiptDTO.builder().databaseName(DATABASE_NAMES.get("idp"))
+                .oid(42L).ownerComment("task-owner-marker").databaseOwner("fixture-owner").build();
+        Mockito.when(physical.getConnection()).thenReturn(connection);
+        Mockito.when(connection.getAutoCommit()).thenReturn(true);
+        Mockito.when(connection.prepareStatement(ArgumentMatchers.anyString())).thenReturn(ownershipQuery, lock, schemaQuery);
+        Mockito.when(ownershipQuery.executeQuery()).thenReturn(databaseRows);
+        Mockito.when(databaseRows.next()).thenReturn(true, false);
+        Mockito.when(databaseRows.getString(1)).thenReturn(receipt.getDatabaseName());
+        Mockito.when(databaseRows.getString(2)).thenReturn("127.0.0.1");
+        Mockito.when(databaseRows.getInt(3)).thenReturn(5432);
+        Mockito.when(databaseRows.getLong(4)).thenReturn(receipt.getOid());
+        Mockito.when(databaseRows.getString(5)).thenReturn(receipt.getOwnerComment());
+        Mockito.when(databaseRows.getString(6)).thenReturn(receipt.getDatabaseOwner());
+        Mockito.when(schemaQuery.executeQuery()).thenReturn(schemaRows);
+        Mockito.when(schemaRows.next()).thenReturn(true, false);
+        Mockito.when(schemaRows.getString(1)).thenReturn("egon_outbox");
+        Mockito.when(schemaRows.getString(2)).thenReturn("another-owner");
+
+        assertThatThrownBy(() -> prepareOwnedIdentitySchemas(physical, receipt))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("XINGYUAN_TARGET_UNSAFE");
+
+        var statements = org.mockito.ArgumentCaptor.forClass(String.class);
+        Mockito.verify(connection, Mockito.atLeastOnce()).prepareStatement(statements.capture());
+        assertThat(statements.getAllValues()).allMatch(sql -> sql.startsWith("SELECT "));
+        Mockito.verify(connection).rollback();
+        Mockito.verify(connection, Mockito.never()).commit();
+        Mockito.verify(connection).close();
+    }
+
+    @Test
+    void identitySchemaPreparationCannotEnterAnotherTaskDatabaseRole() {
+        var physical = Mockito.mock(DataSource.class);
+        var receipt = IsolatedDatabaseReceiptDTO.builder().databaseName(DATABASE_NAMES.get("rbac")).build();
+
+        assertThatThrownBy(() -> prepareOwnedIdentitySchemas(physical, receipt))
+                .isInstanceOf(IllegalArgumentException.class).hasMessage("XINGYUAN_TARGET_UNSAFE");
+        Mockito.verifyNoInteractions(physical);
     }
 
     @Test
@@ -4954,7 +5138,7 @@ public class IsolatedOAuthProvisioningIT {
         byte[] inputBytes = readProtectedBytes(input, root, 128 * 1024);
         var type = strictMapper().getTypeFactory().constructMapType(java.util.TreeMap.class, String.class, ArtifactReferenceDTO.class);
         Map<String, ArtifactReferenceDTO> artifacts = strictMapper().readValue(inputBytes, type);
-        if (artifacts == null || !artifacts.keySet().equals(RUNTIME_PROFILES.keySet())) { throw new IllegalArgumentException("XINGYUAN_INPUT_INVALID"); }
+        Map<String, String> selectedProfiles = runtimeProfilesFor(artifacts == null ? Set.of() : artifacts.keySet());
         Path evidence = root.resolve("evidence");
         validatePrivateSecretDestination(evidence.resolve(".profile-inputs-directory-check"), root);
         Path lockPath = evidence.resolve("profile-inputs.lock");
@@ -5003,7 +5187,7 @@ public class IsolatedOAuthProvisioningIT {
                 fragments.put("edge-host-resource-fragment.properties", encodeRuntimeProperties(edgeHostTemplate));
                 fragments.put("runtime-trust-fragment.properties", encodeRuntimeProperties(runtimeTrustTemplate()));
                 fragments.put("edge-routes-fragment.properties", encodeRuntimeProperties(edgeRoutesTemplate));
-                for (String role : RUNTIME_PROFILES.keySet()) { fragments.put(role + "-audit-fragment.properties", encodeRuntimeProperties(runtimeAuditTemplate(role))); }
+                for (String role : selectedProfiles.keySet()) { fragments.put(role + "-audit-fragment.properties", encodeRuntimeProperties(runtimeAuditTemplate(role))); }
                 for (String role : List.of("biz", "mcp")) { fragments.put(role + "-listener-fragment.properties", encodeRuntimeProperties(gatewayListenerTemplate(role))); }
                 for (var entry : fragments.entrySet()) {
                     Path destination = root.resolve("policies/" + entry.getKey());
@@ -5149,7 +5333,10 @@ public class IsolatedOAuthProvisioningIT {
                     || client.getPurpose() == null || client.getClientType() == null || client.getAllowedScopes() == null
                     || client.getAllowedScopes().isEmpty() || client.getAllowedScopes().size() > 64
                     || client.getAllowedScopes().stream().anyMatch(scope -> scope == null || !scope.matches("[A-Za-z0-9._:-]{1,128}"))
-                    || client.getResourceUris() == null || client.getResourceUris().isEmpty() || !uris.containsAll(client.getResourceUris())) {
+                    || client.getResourceUris() == null || !uris.containsAll(client.getResourceUris())
+                    || client.getPurpose() == OAuthClientPurposeEnum.USER && client.getResourceUris().isEmpty()
+                    || client.getPurpose() == OAuthClientPurposeEnum.SERVICE
+                    && (client.getClientType() != OAuthClient.ClientType.CONFIDENTIAL || !client.getResourceUris().isEmpty())) {
                 throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
             }
             if (client.getRegistrationId() == null) { continue; }
@@ -5219,6 +5406,20 @@ public class IsolatedOAuthProvisioningIT {
         assertThat(facts.get("xingyuan.it.postgres.password")).isEqualTo(credential);
         assertThat(facts.get("xingyuan.it.redis.database")).isEqualTo("15");
         assertThat(facts.get("xingyuan.it.postgres.web.url")).isEqualTo("jdbc:postgresql://127.0.0.1:5432/" + DATABASE_NAMES.get("web"));
+        for (String role : List.of("registry-hmac", "edge-session", "yuheng-master-key", "jianshen-audit-cursor")) {
+            Path key = root.resolve("secrets/" + role);
+            byte[] keyBytes = new byte[32]; java.util.Arrays.fill(keyBytes, (byte) 17);
+            Files.write(key, keyBytes); Files.setPosixFilePermissions(key, PosixFilePermissions.fromString("rw-------"));
+            secretFiles.put(role, key.toString());
+            var withKey = runtimeCredentialFacts(inputs, runtimeRegistryFixture(manifest, hash));
+            assertThat(withKey.get("xingyuan.it.secret." + role + ".base64")).isEqualTo(java.util.Base64.getEncoder().encodeToString(keyBytes));
+            Files.write(key, new byte[31]);
+            assertThatThrownBy(() -> runtimeCredentialFacts(inputs, runtimeRegistryFixture(manifest, hash))).hasMessage("XINGYUAN_INPUT_INVALID");
+            Files.write(key, keyBytes); Files.setPosixFilePermissions(key, PosixFilePermissions.fromString("rw-r--r--"));
+            assertThatThrownBy(() -> runtimeCredentialFacts(inputs, runtimeRegistryFixture(manifest, hash))).hasMessage("XINGYUAN_TARGET_UNSAFE");
+            Files.setPosixFilePermissions(key, PosixFilePermissions.fromString("rw-------"));
+            secretFiles.remove(role);
+        }
         Files.setPosixFilePermissions(Path.of(manifest.getPostgres().getCredentialFile()), PosixFilePermissions.fromString("rw-r--r--"));
         assertThatThrownBy(() -> runtimeCredentialFacts(inputs, runtimeRegistryFixture(manifest, hash))).hasMessage("XINGYUAN_TARGET_UNSAFE");
     }
@@ -5236,6 +5437,29 @@ public class IsolatedOAuthProvisioningIT {
                 .publicOrigin(manifest.getPublicOrigin()).platformStoragePartitionId(manifest.getPlatformStoragePartitionId())
                 .tenantIds(Map.of("default", "1001", "tenant-b", "1002")).subjects(Map.of("admin", "controlled-admin", "viewer", "controlled-viewer")).provisioningSubject("controlled-provisioner")
                 .realms(realms).clients(List.of()).resources(List.of()).aliases(Map.of()).cliResources(List.of()).build();
+    }
+
+    @Test
+    void runtimeFactsKeepServiceGrantTargetsSeparateFromUserResourceUris() {
+        var manifest = intent(); String hash = "a".repeat(64);
+        var inputs = VerifiedDatabaseInputsBO.builder().manifest(manifest).manifestSha256(hash).build();
+        var registry = runtimeRegistryFixture(manifest, hash);
+        var client = IsolatedClientFactDTO.builder().clientPk(21L).clientId("controlled-service").appId("controlled-service")
+                .registrationId("controlled-service").realmCode("platform").issuer(manifest.getPublicOrigin() + "/platform")
+                .clientType(OAuthClient.ClientType.CONFIDENTIAL).purpose(OAuthClientPurposeEnum.SERVICE).status(OAuthClient.Status.ACTIVE)
+                .resourceUris(List.of()).allowedScopes(List.of("tianshu:registration:write")).build();
+        registry.setClients(List.of(client));
+        var facts = runtimeRegistryFacts(inputs, registry);
+        assertThat(facts).containsEntry("xingyuan.it.client.controlled-service.purpose", "SERVICE")
+                .doesNotContainKeys("xingyuan.it.client.controlled-service.resource-uri", "xingyuan.it.client.controlled-service.resource-server-id");
+        client.setPurpose(OAuthClientPurposeEnum.USER);
+        assertThatThrownBy(() -> runtimeRegistryFacts(inputs, registry)).hasMessage("XINGYUAN_TARGET_UNSAFE");
+        client.setResourceUris(List.of("https://foreign.example/resource"));
+        assertThatThrownBy(() -> runtimeRegistryFacts(inputs, registry)).hasMessage("XINGYUAN_TARGET_UNSAFE");
+        client.setPurpose(OAuthClientPurposeEnum.SERVICE);
+        assertThatThrownBy(() -> runtimeRegistryFacts(inputs, registry)).hasMessage("XINGYUAN_TARGET_UNSAFE");
+        client.setResourceUris(List.of()).setClientType(OAuthClient.ClientType.PUBLIC);
+        assertThatThrownBy(() -> runtimeRegistryFacts(inputs, registry)).hasMessage("XINGYUAN_TARGET_UNSAFE");
     }
 
     @Test
@@ -5277,7 +5501,8 @@ public class IsolatedOAuthProvisioningIT {
                 || identity.getError() != null || registry.getClients() == null || registry.getClients().isEmpty()
                 || registry.getResources() == null || registry.getResources().isEmpty()) { throw new IllegalStateException("XINGYUAN_STATE_CONFLICT"); }
         Map<String, String> facts = runtimeCredentialFacts(inputs, registry);
-        Map<String, String> profiles = RUNTIME_PROFILES;
+        Map<String, String> profiles = runtimeProfilesFor(inputs.getManifest().getProcesses().stream()
+                .filter(process -> "JAVA".equals(process.getKind())).map(ProcessTargetDTO::getId).collect(java.util.stream.Collectors.toSet()));
         Map<String, String> exclusions = runtimeProfileExclusions(inputs);
         Map<String, byte[]> encoded = new java.util.LinkedHashMap<>();
         Map<String, FileReferenceDTO> references = new java.util.LinkedHashMap<>();
@@ -5309,6 +5534,12 @@ public class IsolatedOAuthProvisioningIT {
                 clearRuntimeIdentityDefaults(defaults);
                 if (role.equals("edge")) { defaults.keySet().removeIf(key -> key.startsWith("spring.cloud.gateway.server.webflux.routes")); }
                 applyRuntimeTransport(role, process, inputs, defaults, reviewed, profiles.get(role));
+                if (Set.of("biz", "mcp", "llm").contains(role)) {
+                    reviewed.putAll(runtimeGatewayUserScopePolicyTemplate(inputs.getManifest().getArtifacts().get("yuheng"), repository));
+                }
+                if (Set.of("yuheng", "mcp", "llm").contains(role)) {
+                    reviewed.putAll(runtimeYuhengPersistenceTemplate(inputs.getManifest().getArtifacts().get("yuheng"), repository, role));
+                }
                 Map<String, String> rendered = renderRuntimeProperties(defaults, reviewed, facts);
                 validateRuntimeMachineId(rendered);
                 validateRuntimeTrust(inputs, registry, rendered);
@@ -5325,7 +5556,7 @@ public class IsolatedOAuthProvisioningIT {
                 references.put(role, FileReferenceDTO.builder().path(destination.toString()).sha256(sha256Bytes(bytes)).build());
             }
             if (!visited.equals(profiles.keySet())) { throw new IllegalArgumentException("XINGYUAN_INPUT_UNAVAILABLE"); }
-            validateRuntimeProfileCoverage(references.keySet(), exclusions);
+            validateRuntimeProfileCoverage(references.keySet(), exclusions, profiles.keySet());
             publishGeneratedRuntimeProfiles(inputs, sha256Bytes(registryBytes), encoded, references, exclusions);
         } finally { encoded.values().forEach(bytes -> java.util.Arrays.fill(bytes, (byte) 0)); }
     }
@@ -5339,7 +5570,9 @@ public class IsolatedOAuthProvisioningIT {
             readProtectedBytes(lockPath, root.resolve("evidence"), 1024);
             try (var lock = channel.tryLock()) {
                 if (lock == null) { throw new IllegalStateException("XINGYUAN_STATE_CONFLICT"); }
-            validateRuntimeProfileCoverage(references.keySet(), exclusions);
+            Set<String> declared = inputs.getManifest().getProcesses().stream().filter(process -> "JAVA".equals(process.getKind()))
+                    .map(ProcessTargetDTO::getId).collect(java.util.stream.Collectors.toSet());
+            validateRuntimeProfileCoverage(references.keySet(), exclusions, declared);
             if (!encoded.keySet().equals(references.keySet()) || !exclusions.equals(runtimeProfileExclusions(inputs))) {
                 throw new IllegalStateException("XINGYUAN_STATE_CONFLICT");
             }
@@ -5348,7 +5581,7 @@ public class IsolatedOAuthProvisioningIT {
                     .manifestSha256(inputs.getManifestSha256()).registrySha256(registryHash).profiles(Map.copyOf(references)).runtimeExclusions(Map.copyOf(exclusions)).build();
             if (Files.exists(receipt, LinkOption.NOFOLLOW_LINKS)) {
                 var old = strictMapper().readValue(readProtectedBytes(receipt, root.resolve("evidence"), 128 * 1024), RuntimeProfilesReceiptDTO.class);
-                validateRuntimeProfileCoverage(old.getProfiles() == null ? Set.of() : old.getProfiles().keySet(), old.getRuntimeExclusions());
+                validateRuntimeProfileCoverage(old.getProfiles() == null ? Set.of() : old.getProfiles().keySet(), old.getRuntimeExclusions(), declared);
                 if (!ready.equals(old)) { throw new IllegalStateException("XINGYUAN_STATE_CONFLICT"); }
             }
             for (var entry : encoded.entrySet()) {
@@ -5393,11 +5626,39 @@ public class IsolatedOAuthProvisioningIT {
     }
 
     static void validateRuntimeProfileCoverage(Set<String> profiles, Map<String, String> exclusions) {
+        validateRuntimeProfileCoverage(profiles, exclusions, RUNTIME_PROFILES.keySet());
+    }
+
+    static Map<String, String> runtimeProfilesFor(Set<String> roles) {
+        if (!PLATFORM_RUNTIME_ROLES.equals(roles) && !RUNTIME_PROFILES.keySet().equals(roles)) {
+            throw new IllegalArgumentException("XINGYUAN_INPUT_INVALID");
+        }
+        Map<String, String> selected = new java.util.TreeMap<>();
+        roles.forEach(role -> selected.put(role, RUNTIME_PROFILES.get(role)));
+        return Map.copyOf(selected);
+    }
+
+    static void validateRuntimeProfileCoverage(Set<String> profiles, Map<String, String> exclusions, Set<String> declared) {
+        Set<String> expected = new HashSet<>(runtimeProfilesFor(declared).keySet());
         if (profiles == null || exclusions == null || exclusions.size() > 1
+                || !expected.containsAll(exclusions.keySet())
                 || exclusions.entrySet().stream().anyMatch(value -> !"native-agent".equals(value.getKey())
                 || value.getValue() == null || !value.getValue().matches("[0-9a-f]{64}"))) { throw new IllegalStateException("XINGYUAN_STATE_CONFLICT"); }
-        Set<String> expected = new HashSet<>(RUNTIME_PROFILES.keySet()); expected.removeAll(exclusions.keySet());
+        expected.removeAll(exclusions.keySet());
         if (!expected.equals(profiles)) { throw new IllegalStateException("XINGYUAN_STATE_CONFLICT"); }
+    }
+
+    @Test
+    void platformRuntimeProfilesRequireAllEightRolesAndCannotSatisfyFullCoverage() {
+        assertThat(runtimeProfilesFor(PLATFORM_RUNTIME_ROLES)).hasSize(8).doesNotContainKey("native-light");
+        org.junit.jupiter.api.Assertions.assertDoesNotThrow(() -> validateRuntimeProfileCoverage(PLATFORM_RUNTIME_ROLES, Map.of(), PLATFORM_RUNTIME_ROLES));
+        assertThatThrownBy(() -> validateRuntimeProfileCoverage(PLATFORM_RUNTIME_ROLES, Map.of())).hasMessage("XINGYUAN_STATE_CONFLICT");
+        assertThatThrownBy(() -> validateRuntimeProfileCoverage(PLATFORM_RUNTIME_ROLES, Map.of("native-agent", "a".repeat(64)), PLATFORM_RUNTIME_ROLES))
+                .hasMessage("XINGYUAN_STATE_CONFLICT");
+        Set<String> missing = new HashSet<>(PLATFORM_RUNTIME_ROLES); missing.remove("edge");
+        assertThatThrownBy(() -> runtimeProfilesFor(missing)).hasMessage("XINGYUAN_INPUT_INVALID");
+        Set<String> mixed = new HashSet<>(PLATFORM_RUNTIME_ROLES); mixed.add("native-light");
+        assertThatThrownBy(() -> runtimeProfilesFor(mixed)).hasMessage("XINGYUAN_INPUT_INVALID");
     }
 
     @Test
@@ -5466,16 +5727,110 @@ public class IsolatedOAuthProvisioningIT {
         assertThatCode(() -> validateRuntimeMachineId(Map.of("egon.cola.component.id.enabled", "false"))).doesNotThrowAnyException();
     }
 
+    /** Binds the Admin-owned schema and the two consumers to one reviewed physical topology. */
+    static Map<String, String> runtimeYuhengPersistenceTemplate(ArtifactReferenceDTO artifact, Path repository, String role) throws IOException {
+        if (!Set.of("yuheng", "mcp", "llm").contains(role)) { throw new IllegalArgumentException("XINGYUAN_INPUT_INVALID"); }
+        artifactRuntimeDefaults(artifact, repository, "local");
+        try (var jar = new java.util.jar.JarFile(Path.of(artifact.getPath()).toFile(), false)) {
+            byte[] manifestBytes = artifactClasspathResource(jar, "db/egon-mp/repository-manifest.json");
+            if (manifestBytes == null) { throw new IllegalArgumentException("XINGYUAN_INPUT_UNAVAILABLE"); }
+            var manifest = strictMapper().readValue(manifestBytes, top.egon.cola.component.common.mybatis.ddl.EgonColaDdlManifestBO.class);
+            if (!"web".equals(manifest.family()) || manifest.scripts() == null || manifest.scripts().size() != 1) {
+                throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+            }
+            var script = manifest.scripts().getFirst();
+            byte[] sql = artifactClasspathResource(jar, script.path());
+            if (sql == null || !sha256Bytes(sql).equals(script.sha256())) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
+            var tables = new java.util.TreeSet<String>();
+            var matcher = java.util.regex.Pattern.compile("(?im)^\\s*CREATE TABLE (?:public\\.)?([a-z][a-z0-9_]*)\\s*\\(")
+                    .matcher(new String(sql, StandardCharsets.UTF_8));
+            while (matcher.find()) {
+                if (!tables.add(matcher.group(1))) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
+            }
+            if (tables.size() != 50 || !tables.remove("ddl_history") || tables.stream().anyMatch(name -> !name.endsWith("_t0"))) {
+                throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+            }
+            Map<String, String> values = new java.util.TreeMap<>();
+            values.put("yuheng.persistence.tenant-id", "${xingyuan.it.tenant.default.id}");
+            values.put("yuheng.persistence.identity-tenant-id", "${xingyuan.it.tenant.default.id}");
+            values.put("yuheng.persistence.service-user-id", "service:" + role + ":${xingyuan.it.run-id}");
+            values.put("yuheng.persistence.expected-schema-version", script.version());
+            values.put("yuheng.persistence.expected-schema-sha256", script.sha256());
+            values.put("yuheng.persistence.managed-ddl-enabled", Boolean.toString(role.equals("yuheng")));
+            values.put("spring.flyway.enabled", "false");
+            values.put("egon.cola.component.mybatis-plus.ddl.enabled", Boolean.toString(role.equals("yuheng")));
+            values.put("egon.cola.component.mybatis-plus.tenant-id.ignored-tables[0]", "ddl_history");
+            values.put("mybatis-plus.mapper-locations", "classpath*:mybatis/mapper/**/*.xml,classpath*:mapper/**/*.xml");
+            String prefix = "egon.cola.component.mybatis-plus.sharding.";
+            values.put(prefix + "enabled", "true"); values.put(prefix + "mode", "SHARDING");
+            values.put(prefix + "config-style", "STRATEGY"); values.put(prefix + "transaction-default-type", "LOCAL");
+            values.put(prefix + "data-sources[0].name", "yuheng_0"); values.put(prefix + "data-sources[0].logical-name", "yuheng_0");
+            values.put(prefix + "data-sources[0].role", "PRIMARY"); values.put(prefix + "data-sources[0].driver-class-name", "org.postgresql.Driver");
+            values.put(prefix + "data-sources[0].jdbc-url", "${xingyuan.it.postgres.yuheng.url}");
+            values.put(prefix + "data-sources[0].username", "${xingyuan.it.postgres.yuheng.username}");
+            values.put(prefix + "data-sources[0].password", "${xingyuan.it.postgres.password}");
+            values.put("spring.datasource.url", "${xingyuan.it.postgres.yuheng.url}");
+            values.put("spring.datasource.username", "${xingyuan.it.postgres.yuheng.username}");
+            values.put("spring.datasource.password", "${xingyuan.it.postgres.password}");
+            values.put("spring.datasource.driver-class-name", "org.postgresql.Driver");
+            for (String table : tables) { values.put(prefix + "tables." + table.substring(0, table.length() - 3) + ".type", "STANDARD_TENANT_ID"); }
+            values.put(prefix + "tables.ddl_history.type", "SINGLE");
+            values.put(prefix + "tables.ddl_history.data-source", "yuheng_0"); values.put(prefix + "tables.ddl_history.schema", "public");
+            return java.util.Collections.unmodifiableMap(values);
+        }
+    }
+
+    @Test
+    @org.junit.jupiter.api.condition.EnabledIfSystemProperty(named = "xingyuan.isolated.profile-inventory.enabled", matches = "true")
+    void runtimeYuhengPersistenceUsesTheActualFrozenAdminSchema() throws IOException {
+        Path repository = Path.of(requiredOperationProperty("xingyuan.isolated.repository-root")).toRealPath();
+        var type = strictMapper().getTypeFactory().constructMapType(java.util.TreeMap.class, String.class, ArtifactReferenceDTO.class);
+        Map<String, ArtifactReferenceDTO> artifacts = strictMapper().readValue(
+                Files.readAllBytes(Path.of(requiredOperationProperty("xingyuan.isolated.profile-inventory-file"))), type);
+        for (String role : List.of("yuheng", "mcp", "llm")) {
+            var values = runtimeYuhengPersistenceTemplate(artifacts.get("yuheng"), repository, role);
+            assertThat(values).containsEntry("yuheng.persistence.managed-ddl-enabled", Boolean.toString(role.equals("yuheng")))
+                    .containsEntry("egon.cola.component.mybatis-plus.ddl.enabled", Boolean.toString(role.equals("yuheng")))
+                    .containsEntry("spring.datasource.url", "${xingyuan.it.postgres.yuheng.url}")
+                    .containsEntry("yuheng.persistence.identity-tenant-id", "${xingyuan.it.tenant.default.id}")
+                    .containsEntry("egon.cola.component.mybatis-plus.sharding.tables.gateway_llm_model.type", "STANDARD_TENANT_ID")
+                    .containsEntry("egon.cola.component.mybatis-plus.sharding.tables.gateway_mcp_task_instance.type", "STANDARD_TENANT_ID");
+            assertThat(values.keySet().stream().filter(key -> key.endsWith(".type")).toList()).hasSize(50);
+        }
+    }
+
     private static void applyRuntimeTransport(String role, ProcessTargetDTO process, VerifiedDatabaseInputsBO inputs,
             Map<String, Object> defaults, Map<String, String> values, String profile) {
         values.put("xingyuan.isolated.run-id", "${xingyuan.it.run-id}");
-        values.put("spring.profiles.active", profile);
+        boolean localGateway = Set.of("biz", "mcp", "llm").contains(role);
+        values.put("spring.profiles.active", localGateway ? profile + ",local" : profile);
+        if (localGateway || "local".equals(profile)) { values.put("DEPLOYMENT_ENV", "local"); }
         values.put("spring.docker.compose.enabled", "false");
+        if (Set.of("biz", "mcp").contains(role)) {
+            values.put("egon.cola.component.tianshu.registry.enabled", "true");
+        }
+        values.put("egon.cola.component.cache.node-id", "xingyuan-it:${xingyuan.it.run-id}:" + role);
+        values.put("egon.cola.component.cache.key-prefix", "xingyuan-it:${xingyuan.it.run-id}:cache:" + role);
+        values.put("egon.cola.component.cache.redis.topic", "xingyuan-it:${xingyuan.it.run-id}:cache:" + role + ":events");
         values.put("management.endpoint.health.probes.enabled", "true");
         values.put("server.address", "127.0.0.1"); values.put("server.port", Integer.toString(runtimeManagementPort(process)));
         values.put("server.ssl.enabled", "true"); values.put("server.ssl.key-store-type", "PKCS12");
         values.put("server.ssl.key-store", "${xingyuan.it.tls.key-store-uri}");
         values.put("server.ssl.key-store-password", "${xingyuan.it.tls.key-store-password}");
+        if (Set.of("tianshu", "yuheng", "edge").contains(role)) {
+            String bundle = "xingyuan-it-mtls";
+            String pem = "spring.ssl.bundle.pem." + bundle + ".";
+            values.put(pem + "keystore.certificate", "file:${xingyuan.it.secret.tls-server-cert.file}");
+            values.put(pem + "keystore.private-key", "file:${xingyuan.it.secret.tls-server-key.file}");
+            values.put(pem + "truststore.certificate", "file:${xingyuan.it.secret.tls-ca-cert.file}");
+            if (role.equals("edge")) {
+                values.put("spring.cloud.gateway.server.webflux.httpclient.ssl.ssl-bundle", bundle);
+                values.put("spring.cloud.gateway.server.webflux.httpclient.ssl.use-insecure-trust-manager", "false");
+            } else {
+                values.put("server.ssl.bundle", bundle);
+                values.put("server.ssl.client-auth", "need");
+            }
+        }
         values.put("server.forward-headers-strategy", "framework");
         if (!role.equals("edge")) {
             values.put("egon.cola.platform.tianquan.shoubing.enabled", "true");
@@ -5499,8 +5854,21 @@ public class IsolatedOAuthProvisioningIT {
             values.put("egon.tianquan-jianshen.runtime.redis-address", "${xingyuan.it.redis.endpoint}");
             values.put("egon.tianquan-jianshen.runtime.redis-database", "${xingyuan.it.redis.database}");
             values.put("egon.tianquan-jianshen.runtime.redis-password-file", "${xingyuan.it.redis.credential-file}");
+            values.put("egon.cola.component.mybatis-plus.tenant-id.ignored-tables[0]", "egon_cola_outbox_message");
+            values.put("egon.cola.component.mybatis-plus.tenant-id.ignored-tables[1]", "ddl_history");
+            values.put("egon.tianquan-jianshen.security.audit-cursor-secret-file", "${xingyuan.it.secret.jianshen-audit-cursor.file}");
         }
         if (role.equals("edge")) { values.put("spring.session.redis.namespace", "xingyuan-it:${xingyuan.it.run-id}:bff:session:v3"); }
+        if (role.equals("llm")) {
+            values.putIfAbsent("yuheng.llm.enabled", "false");
+            values.putIfAbsent("yuheng.llm.secrets-root", "${xingyuan.it.runtime-root}/secrets");
+            values.putIfAbsent("yuheng.llm.max-request-bytes", "2097152");
+            values.putIfAbsent("yuheng.llm.max-frame-bytes", "1048576");
+            values.putIfAbsent("yuheng.llm.maximum-attempts", "2");
+            values.putIfAbsent("yuheng.llm.streaming-threads", "64");
+            values.putIfAbsent("yuheng.llm.identity.resource-uri", "${xingyuan.it.resource.xingyuan-it-llm.uri}");
+            values.putIfAbsent("yuheng.llm.identity.service-token-audience", "${xingyuan.it.resource.xingyuan-it-llm.uri}");
+        }
         values.put("egon.tianquan-shoubing.development-bootstrap.enabled", "false");
         values.put("egon.tianquan-jianshen.development-bootstrap.enabled", "false");
         values.put("egon.tianquan-jianshen.development-bootstrap.auto-activate-local-admin-roles", "false");
@@ -5509,6 +5877,22 @@ public class IsolatedOAuthProvisioningIT {
             values.put("egon.tianquan-shoubing.oauth.public-origin", "${xingyuan.it.public-origin}");
             values.put("egon.tianquan-shoubing.identity-directory.platform-storage-partition-id", inputs.getManifest().getPlatformStoragePartitionId());
             values.put("egon.tianquan-shoubing.oauth.platform-management-tenant-id", "${xingyuan.it.tenant.default.id}");
+        }
+        if (role.equals("tianshu")) {
+            String tenancy = "egon.cola.component.tianshu.admin.tenancy.";
+            for (int index = 0; index < 2; index++) {
+                String tenant = index == 0 ? "default" : "tenant-b";
+                String binding = tenancy + "bindings[" + index + "].";
+                values.put(binding + "tenant-id", "${xingyuan.it.tenant." + tenant + ".id}");
+                values.put(binding + "identity-tenant-id", "${xingyuan.it.tenant." + tenant + ".id}");
+                values.put(binding + "enabled", "true");
+            }
+            for (int index = 0; index < 3; index++) {
+                String binding = tenancy + "credential-bindings[" + index + "].";
+                values.put(binding + "credential-id", List.of("runtime", "registry", "management").get(index));
+                values.put(binding + "tenant-id", "${xingyuan.it.tenant.default.id}");
+                values.put(binding + "namespace-patterns[0]", "${xingyuan.it.namespace}");
+            }
         }
         if (role.equals("jianshen") || role.equals("tianshu")) {
             String component = "egon.cola.component.mybatis-plus.sharding.";
@@ -5524,6 +5908,11 @@ public class IsolatedOAuthProvisioningIT {
             values.put(component + "data-sources[0].password", "${xingyuan.it.postgres.password}");
         }
         if (role.equals("yuheng")) {
+            values.put("yuheng.admin.tianshu.enabled", "true");
+            values.put("yuheng.admin.tianshu.api-rpc-biz-code", "${xingyuan.it.resource.xingyuan-it-biz.biz-code}");
+            values.put("yuheng.admin.tianshu.api-rpc-app-code", "${xingyuan.it.resource.xingyuan-it-biz.app-code}");
+            values.put("yuheng.admin.tianshu.mcp-biz-code", "${xingyuan.it.resource.xingyuan-it-mcp.biz-code}");
+            values.put("yuheng.admin.tianshu.mcp-app-code", "${xingyuan.it.resource.xingyuan-it-mcp.app-code}");
             values.put("yuheng.persistence.managed-ddl-enabled", "true");
             values.put("egon.cola.component.mybatis-plus.ddl.enabled", "true");
             values.put("egon.cola.component.transactional-outbox.storage.mp.auto-initialize-ddl", "true");
@@ -5532,7 +5921,7 @@ public class IsolatedOAuthProvisioningIT {
         boolean jdbc = keys.stream().anyMatch(key -> key.equals("spring.datasource.url") || key.endsWith(".jdbc-url"));
         if (jdbc) {
             String databaseRole = Map.ofEntries(Map.entry("shoubing", "idp"), Map.entry("jianshen", "rbac"), Map.entry("tianshu", "tianshu"),
-                    Map.entry("yuheng", "yuheng"), Map.entry("biz", "yuheng"), Map.entry("mcp", "yuheng"), Map.entry("llm", "llm"),
+                    Map.entry("yuheng", "yuheng"), Map.entry("biz", "yuheng"), Map.entry("mcp", "yuheng"), Map.entry("llm", "yuheng"),
                     Map.entry("native-light", "light"), Map.entry("native-web", "web"), Map.entry("native-service", "service"), Map.entry("native-agent", "agent")).get(role);
             if (databaseRole == null) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
             String prefix = "${xingyuan.it.postgres." + databaseRole;
@@ -5560,7 +5949,7 @@ public class IsolatedOAuthProvisioningIT {
             throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
         }
         String databaseRole = Map.ofEntries(Map.entry("shoubing", "idp"), Map.entry("jianshen", "rbac"), Map.entry("tianshu", "tianshu"),
-                Map.entry("yuheng", "yuheng"), Map.entry("biz", "yuheng"), Map.entry("mcp", "yuheng"), Map.entry("llm", "llm"),
+                Map.entry("yuheng", "yuheng"), Map.entry("biz", "yuheng"), Map.entry("mcp", "yuheng"), Map.entry("llm", "yuheng"),
                 Map.entry("native-light", "light"), Map.entry("native-web", "web"), Map.entry("native-service", "service"), Map.entry("native-agent", "agent")).get(role);
         String expectedJdbc = databaseRole == null ? null : "jdbc:postgresql://127.0.0.1:5432/" + DATABASE_NAMES.get(databaseRole);
         if (!role.equals("edge") && (!"true".equals(resolver.getProperty("egon.cola.platform.tianquan.shoubing.enabled"))
@@ -5938,6 +6327,9 @@ public class IsolatedOAuthProvisioningIT {
         if (!RUNTIME_PROFILES.containsKey(role)) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
         Map<String, String> values = new java.util.TreeMap<>();
         String component = "egon.cola.component.rpc.";
+        values.put(component + "identity.env", "${xingyuan.it.environment}");
+        values.put(component + "identity.host", "127.0.0.1");
+        values.put(component + "identity.instance-id", role + "-${xingyuan.it.run-id}");
         boolean provider = RUNTIME_RPC_PORTS.containsKey(role);
         values.put(component + "provider.enabled", Boolean.toString(provider));
         if (provider) {
@@ -6162,12 +6554,23 @@ public class IsolatedOAuthProvisioningIT {
         assertThatThrownBy(() -> runtimeRegistryFacts(inputs, registry)).hasMessage("XINGYUAN_TARGET_UNSAFE");
     }
 
+    static Map<String, String> runtimeGatewayUserScopePolicyTemplate(ArtifactReferenceDTO artifact, Path repository) throws IOException {
+        String prefix = "egon.cola.platform.tianquan.jianshen.user-scope-policy.permission-scopes";
+        Map<String, String> values = new java.util.TreeMap<>();
+        artifactRuntimeDefaults(artifact, repository, RUNTIME_PROFILES.get("yuheng")).forEach((key, value) -> {
+            if (key.startsWith(prefix)) { values.put(key, String.valueOf(value)); }
+        });
+        if (values.isEmpty()) { throw new IllegalArgumentException("XINGYUAN_INPUT_UNAVAILABLE"); }
+        return Map.copyOf(values);
+    }
+
     static Map<String, String> gatewayListenerTemplate(String role) {
         if (!Set.of("biz", "mcp").contains(role)) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
         Map<String, String> values = new java.util.TreeMap<>();
         String process = "${xingyuan.it.process." + role + ".";
         values.put("server.port", process + "management-port}");
         values.put("egon.cola.component.tianshu.env", "${xingyuan.it.environment}");
+        values.put("egon.cola.component.tianshu.registry.enabled", "true");
         String tls;
         if (role.equals("biz")) {
             String engine = "egon.cola.component.yuheng.engine.";
@@ -6181,6 +6584,7 @@ public class IsolatedOAuthProvisioningIT {
             values.put(engine + "yuheng-group-code", "xingyuan-it-${xingyuan.it.run-id}");
             values.put(engine + "env", "${xingyuan.it.environment}"); values.put(engine + "namespace", "xingyuan-it-${xingyuan.it.run-id}");
             values.put(engine + "management-port", process + "management-port}");
+            values.put("egon.cola.component.yuheng.engine.mcp.artifact-root", "${xingyuan.it.runtime-root}/evidence/mcp-artifacts");
             values.put(engine + "listener.enabled", "true"); values.put(engine + "listener.host", "127.0.0.1");
             values.put(engine + "listener.port", process + "port}"); tls = engine + "listener.tls.";
         }
@@ -6189,6 +6593,17 @@ public class IsolatedOAuthProvisioningIT {
         values.put(tls + "private-key-path", "${xingyuan.it.secret.tls-server-key.file}");
         values.put(tls + "trust-certificate-collection-path", "${xingyuan.it.secret.tls-ca-cert.file}");
         values.put(tls + "client-certificate-required", "false");
+        List<String> privateTls = role.equals("biz")
+                ? List.of("egon.cola.component.yuheng.engine.http.internal-tls.", "egon.cola.component.yuheng.engine.http.upstream-tls.",
+                        "egon.cola.component.yuheng.engine.rpc.tls.")
+                : List.of("egon.cola.component.yuheng.mcp-engine.outbound.rpc-tls.", "egon.cola.component.yuheng.mcp-engine.outbound.http-tls.");
+        for (String prefix : privateTls) {
+            values.put(prefix + "enabled", "true"); values.put(prefix + "development-plaintext", "false");
+            values.put(prefix + "certificate-chain-path", "${xingyuan.it.secret.tls-server-cert.file}");
+            values.put(prefix + "private-key-path", "${xingyuan.it.secret.tls-server-key.file}");
+            values.put(prefix + "trust-certificate-collection-path", "${xingyuan.it.secret.tls-ca-cert.file}");
+            values.put(prefix + "client-certificate-required", "true");
+        }
         return java.util.Collections.unmodifiableMap(values);
     }
 
@@ -6199,7 +6614,10 @@ public class IsolatedOAuthProvisioningIT {
         if (processes.size() != 1) { throw new IllegalArgumentException("XINGYUAN_INPUT_UNAVAILABLE"); }
         var process = processes.getFirst(); int management = runtimeManagementPort(process);
         if (!Integer.toString(management).equals(values.get("server.port")) || !"127.0.0.1".equals(values.get("server.address"))
-                || !"true".equals(values.get("server.ssl.enabled"))) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
+                || !"true".equals(values.get("server.ssl.enabled"))
+                || !"true".equals(values.get("egon.cola.component.tianshu.registry.enabled"))) {
+            throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+        }
         artifactRuntimeDefaults(artifact, repository, "operations");
         boolean biz = role.equals("biz");
         String prefix = biz ? "egon.cola.component.yuheng.engine.http" : "egon.cola.component.yuheng.mcp-engine.listener";
@@ -6278,8 +6696,14 @@ public class IsolatedOAuthProvisioningIT {
             var process = ProcessTargetDTO.builder().id(entry.getKey()).artifactRole(entry.getKey()).kind("JAVA")
                     .port(entry.getValue().getFirst()).additionalPorts(List.of(entry.getValue().getLast())).build();
             Map<String, String> values = new java.util.TreeMap<>();
+            values.put("egon.cola.component.tianshu.registry.enabled", "false");
             applyRuntimeTransport(entry.getKey(), process, inputs, Map.of(), values, "operations");
             assertThat(values).containsEntry("server.port", Integer.toString(entry.getValue().getLast()));
+            assertThat(values).containsEntry("egon.cola.component.tianshu.registry.enabled", "true");
+            assertThat(values).containsEntry("spring.profiles.active", "operations,local").containsEntry("DEPLOYMENT_ENV", "local");
+            assertThat(values).containsEntry("egon.cola.component.cache.node-id", "xingyuan-it:${xingyuan.it.run-id}:" + entry.getKey())
+                    .containsEntry("egon.cola.component.cache.key-prefix", "xingyuan-it:${xingyuan.it.run-id}:cache:" + entry.getKey())
+                    .containsEntry("egon.cola.component.cache.redis.topic", "xingyuan-it:${xingyuan.it.run-id}:cache:" + entry.getKey() + ":events");
             manifest.setProcesses(List.of(process));
             var facts = runtimeRegistryFacts(inputs, runtimeRegistryFixture(manifest, inputs.getManifestSha256()));
             assertThat(facts).containsEntry("xingyuan.it.process." + entry.getKey() + ".management-port", Integer.toString(entry.getValue().getLast()));
@@ -6290,6 +6714,14 @@ public class IsolatedOAuthProvisioningIT {
         }
         var rpcProvider = ProcessTargetDTO.builder().id("native-web").port(28311).additionalPorts(List.of(29311)).build();
         assertThat(runtimeManagementPort(rpcProvider)).isEqualTo(28311);
+        Map<String, String> llmValues = new java.util.TreeMap<>();
+        applyRuntimeTransport("llm", ProcessTargetDTO.builder().id("llm").port(28190).build(), inputs, Map.of(), llmValues, "default");
+        assertThat(llmValues).containsEntry("spring.profiles.active", "default,local").containsEntry("DEPLOYMENT_ENV", "local");
+        for (String role : List.of("shoubing", "jianshen", "tianshu", "yuheng")) {
+            Map<String, String> localValues = new java.util.TreeMap<>();
+            applyRuntimeTransport(role, ProcessTargetDTO.builder().id(role).port(28100).build(), inputs, Map.of(), localValues, "local");
+            assertThat(localValues).containsEntry("spring.profiles.active", "local").containsEntry("DEPLOYMENT_ENV", "local");
+        }
     }
 
     static Map<String, String> runtimeAuditTemplate(String role) {
@@ -6830,6 +7262,13 @@ public class IsolatedOAuthProvisioningIT {
                 if (Files.isSymbolicLink(current)) { throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE"); }
             }
             facts.put("xingyuan.it.secret." + reference.getKey() + ".file", file.toString());
+            if (Set.of("registry-hmac", "edge-session", "yuheng-master-key", "jianshen-audit-cursor").contains(reference.getKey())) {
+                byte[] key = readProtectedBytes(file, root.resolve("secrets"), 32);
+                try {
+                    if (key.length != 32) { throw new IllegalArgumentException("XINGYUAN_INPUT_INVALID"); }
+                    facts.put("xingyuan.it.secret." + reference.getKey() + ".base64", java.util.Base64.getEncoder().encodeToString(key));
+                } finally { java.util.Arrays.fill(key, (byte) 0); }
+            }
         }
         for (String required : List.of("tls-keystore", "tls-keystore-password", "tls-ca-cert", "tls-server-cert", "tls-server-key")) {
             if (!manifest.getSecretFiles().containsKey(required)) { throw new IllegalArgumentException("XINGYUAN_INPUT_UNAVAILABLE"); }
@@ -6865,6 +7304,7 @@ public class IsolatedOAuthProvisioningIT {
             inputs.put(entry.getKey(), entry.getValue().toString());
         }
         inputs.putAll(template);
+        boolean serverBundle = inputs.containsKey("server.ssl.bundle");
         Map<String, Object> protectedFacts = new java.util.LinkedHashMap<>();
         Map<String, String> literals = new java.util.LinkedHashMap<>();
         Set<String> privateMarkers = new HashSet<>();
@@ -6901,6 +7341,8 @@ public class IsolatedOAuthProvisioningIT {
         defaults.keySet().stream().filter(key -> !template.containsKey(key)).sorted().forEach(ordered::add);
         template.keySet().stream().sorted().forEach(ordered::add);
         for (String inputKey : ordered) {
+            if (serverBundle && (inputKey.startsWith("server.ssl.key-store")
+                    || inputKey.startsWith("server.ssl.trust-store"))) { continue; }
             String key = inputKey;
             Object raw = inputs.get(inputKey);
             if (key == null || key.isBlank() || key.startsWith("xingyuan.it.") || key.indexOf('\0') >= 0
@@ -6929,7 +7371,78 @@ public class IsolatedOAuthProvisioningIT {
             // The next Spring environment must also treat restored fact values as opaque literals.
             output.put(key, value.replace("${", "\\${"));
         }
+        if ("true".equals(output.get("egon.cola.component.tianshu.enabled"))) {
+            output.put("spring.config.import", "optional:tianshu:application.yml");
+            output.put("egon.cola.component.tianshu.defer-initial-load", "true");
+        }
         return java.util.Collections.unmodifiableMap(output);
+    }
+
+    @Test
+    void runtimeTianshuHmacCredentialsBindOnlyToTheCommittedTaskTenantAndNamespace() {
+        var inputs = VerifiedDatabaseInputsBO.builder().manifest(intent()).manifestSha256("a".repeat(64)).build();
+        Map<String, String> values = new java.util.TreeMap<>();
+        applyRuntimeTransport("tianshu", ProcessTargetDTO.builder().id("tianshu").port(28150).build(), inputs, Map.of(), values, "local");
+        String prefix = "egon.cola.component.tianshu.admin.tenancy.";
+        var selected = new java.util.TreeMap<String, String>();
+        values.forEach((key, value) -> { if (key.startsWith(prefix)) { selected.put(key, value); } });
+        var rendered = renderRuntimeProperties(Map.of(), selected, Map.of(
+                "xingyuan.it.tenant.default.id", "1001", "xingyuan.it.tenant.tenant-b.id", "1002",
+                "xingyuan.it.namespace", "xingyuan-it-controlled"));
+        assertThat(rendered).containsEntry(prefix + "bindings[0].tenant-id", "1001")
+                .containsEntry(prefix + "bindings[0].identity-tenant-id", "1001")
+                .containsEntry(prefix + "bindings[1].tenant-id", "1002")
+                .containsEntry(prefix + "bindings[1].identity-tenant-id", "1002");
+        for (int index = 0; index < 3; index++) {
+            String binding = prefix + "credential-bindings[" + index + "].";
+            assertThat(rendered).containsEntry(binding + "credential-id", List.of("runtime", "registry", "management").get(index))
+                    .containsEntry(binding + "tenant-id", "1001")
+                    .containsEntry(binding + "namespace-patterns[0]", "xingyuan-it-controlled");
+        }
+        assertThat(rendered.values()).doesNotContain("*", "1");
+    }
+
+    @Test
+    void runtimeMtlsUsesTheTaskPemBundleWithoutResolvingAnObsoleteServerKeyStore() {
+        var inputs = VerifiedDatabaseInputsBO.builder().manifest(intent()).manifestSha256("a".repeat(64)).build();
+        Map<String, String> facts = Map.of("xingyuan.it.secret.tls-server-cert.file", "/owned/server.crt",
+                "xingyuan.it.secret.tls-server-key.file", "/owned/server.key",
+                "xingyuan.it.secret.tls-ca-cert.file", "/owned/ca.crt");
+        for (String role : List.of("tianshu", "yuheng", "edge")) {
+            Map<String, String> values = new java.util.TreeMap<>();
+            applyRuntimeTransport(role, ProcessTargetDTO.builder().id(role).port(28100).build(), inputs, Map.of(), values, "local");
+            Map<String, String> selected = new java.util.TreeMap<>();
+            values.forEach((key, value) -> {
+                if (key.startsWith("spring.ssl.bundle.pem.") || key.equals("server.ssl.bundle")
+                        || key.equals("server.ssl.client-auth") || key.startsWith("spring.cloud.gateway.server.webflux.httpclient.ssl.")) {
+                    selected.put(key, value);
+                }
+            });
+            var rendered = renderRuntimeProperties(role.equals("edge") ? Map.of()
+                            : Map.of("server.ssl.key-store", "${MISSING_OLD_STORE}", "server.ssl.key-store-password", "${MISSING_OLD_PASSWORD}"),
+                    selected, facts);
+            assertThat(rendered).containsEntry("spring.ssl.bundle.pem.xingyuan-it-mtls.keystore.certificate", "file:/owned/server.crt")
+                    .containsEntry("spring.ssl.bundle.pem.xingyuan-it-mtls.keystore.private-key", "file:/owned/server.key")
+                    .containsEntry("spring.ssl.bundle.pem.xingyuan-it-mtls.truststore.certificate", "file:/owned/ca.crt")
+                    .doesNotContainKeys("server.ssl.key-store", "server.ssl.key-store-password");
+            if (role.equals("edge")) {
+                assertThat(rendered).containsEntry("spring.cloud.gateway.server.webflux.httpclient.ssl.ssl-bundle", "xingyuan-it-mtls")
+                        .containsEntry("spring.cloud.gateway.server.webflux.httpclient.ssl.use-insecure-trust-manager", "false");
+            } else {
+                assertThat(rendered).containsEntry("server.ssl.bundle", "xingyuan-it-mtls").containsEntry("server.ssl.client-auth", "need");
+            }
+        }
+    }
+
+    @Test
+    void enabledTianshuRuntimeRetainsItsRequiredConfigDataImport() {
+        Map<String, String> enabled = renderRuntimeProperties(Map.of(),
+                Map.of("egon.cola.component.tianshu.enabled", "${xingyuan.it.client.enabled}"),
+                Map.of("xingyuan.it.client.enabled", "true"));
+        assertThat(enabled).containsEntry("spring.config.import", "optional:tianshu:application.yml")
+                .containsEntry("egon.cola.component.tianshu.defer-initial-load", "true");
+        assertThat(renderRuntimeProperties(Map.of(), Map.of("egon.cola.component.tianshu.enabled", "false"), Map.of()))
+                .doesNotContainKey("spring.config.import");
     }
 
     @Test

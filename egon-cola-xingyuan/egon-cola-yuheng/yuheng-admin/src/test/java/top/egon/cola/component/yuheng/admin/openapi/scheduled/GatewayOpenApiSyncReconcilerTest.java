@@ -1,5 +1,7 @@
 package top.egon.cola.component.yuheng.admin.openapi.scheduled;
 
+import static top.egon.cola.component.yuheng.admin.config.GatewayPersistenceTestSupport.persistenceContext;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.scheduling.annotation.Scheduled;
 import top.egon.cola.component.yuheng.admin.config.properties.GatewayAdminOpenApiProperties;
@@ -19,7 +21,7 @@ class GatewayOpenApiSyncReconcilerTest {
         GatewayAdminOpenApiProperties properties =
                 new GatewayAdminOpenApiProperties();
         GatewayOpenApiSyncReconciler reconciler =
-                new GatewayOpenApiSyncReconciler(service, properties);
+                new GatewayOpenApiSyncReconciler(service, properties, persistenceContext());
 
         Method method = GatewayOpenApiSyncReconciler.class.getDeclaredMethod(
                 "reconcile");

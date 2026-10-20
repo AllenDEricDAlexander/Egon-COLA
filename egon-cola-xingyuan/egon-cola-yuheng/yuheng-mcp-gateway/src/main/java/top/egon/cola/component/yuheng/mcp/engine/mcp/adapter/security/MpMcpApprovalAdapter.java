@@ -58,7 +58,7 @@ import java.util.concurrent.Callable;
 @Component("mcpApprovalAdapter")
 @RequiredArgsConstructor
 @Validated
-public final class MpMcpApprovalAdapter implements McpApprovalPort {
+public class MpMcpApprovalAdapter implements McpApprovalPort {
 
     /** 中文说明：可被消费的持久化状态，逐字对应旧 SQL 的 {@code status = 'PENDING'}。 English summary: the persisted status that may be consumed, matching the legacy {@code status = 'PENDING'} verbatim. */
     private static final McpPersistentApprovalStatusEnum PENDING = McpPersistentApprovalStatusEnum.PENDING;

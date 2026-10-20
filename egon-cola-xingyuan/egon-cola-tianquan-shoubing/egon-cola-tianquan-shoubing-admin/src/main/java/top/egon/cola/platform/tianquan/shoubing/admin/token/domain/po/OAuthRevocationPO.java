@@ -27,7 +27,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.token.domain.enums.OAuthSe
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName("oauth_revocation")
+@TableName(value = "oauth_revocation", schema = "tianquan_oauth")
 public class OAuthRevocationPO extends EgonModel<OAuthRevocationPO> {
 
     @TableField(value = "target_type", updateStrategy = FieldStrategy.NEVER)

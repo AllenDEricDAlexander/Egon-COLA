@@ -367,7 +367,12 @@ public class DdcDatabaseReadyValidator implements SmartInitializingSingleton {
              ResultSet rows = statement.executeQuery()) {
             List<EgonColaDdlManifestBO.ScriptBO> scripts = manifest.scripts();
             int index = 0;
+            boolean first = true;
             while (rows.next()) {
+                if (first) {
+                    index = manifest.startingIndex(rows.getString(3));
+                    first = false;
+                }
                 if (index >= scripts.size()) {
                     throw new IllegalStateException("TIANSHU_DDL_HISTORY_PREFIX_MISMATCH");
                 }
@@ -378,7 +383,7 @@ public class DdcDatabaseReadyValidator implements SmartInitializingSingleton {
                     throw new IllegalStateException("TIANSHU_DDL_HISTORY_PREFIX_MISMATCH");
                 }
             }
-            if (index != scripts.size()) {
+            if (first || index != scripts.size()) {
                 throw new IllegalStateException("TIANSHU_DDL_HISTORY_INCOMPLETE");
             }
         }

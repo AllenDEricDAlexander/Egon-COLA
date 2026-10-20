@@ -84,14 +84,16 @@
     </select>
     <update id="markOfflineIfLeaseMatches">
         UPDATE ddc_instance SET status = #{status}, updated_at = #{updatedAt}, version = version + 1,
-            update_user_id = #{actor}, update_time = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
-        WHERE tenant_id = #{tenantId} AND instance_id = #{instanceId} AND lease_id = #{leaseId}
+            update_user_id = #{actor}, update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND version = #{expectedVersion}
+          AND instance_id = #{instanceId} AND lease_id = #{leaseId}
           AND deleted_at IS NULL
     </update>
     <update id="markResourceAdmissionOffline">
         UPDATE ddc_instance SET status = 'OFFLINE', updated_at = #{updatedAt}, version = version + 1,
-            update_user_id = #{actor}, update_time = CURRENT_TIMESTAMP AT TIME ZONE 'UTC'
-        WHERE tenant_id = #{tenantId} AND resource_server_id = #{resourceServerId}
+            update_user_id = #{actor}, update_time = #{updateTime}
+        WHERE tenant_id = #{tenantId} AND id = #{id} AND version = #{expectedVersion}
+          AND resource_server_id = #{resourceServerId}
           AND biz_code = #{bizCode} AND env = #{env} AND app_code = #{appCode}
           AND resource_version &lt;= #{resourceVersion} AND status = 'ONLINE' AND deleted_at IS NULL
     </update>

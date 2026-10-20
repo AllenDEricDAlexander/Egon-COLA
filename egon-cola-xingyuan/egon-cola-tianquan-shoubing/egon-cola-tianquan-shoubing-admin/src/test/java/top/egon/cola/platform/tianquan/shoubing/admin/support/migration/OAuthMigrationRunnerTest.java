@@ -34,6 +34,17 @@ class OAuthMigrationRunnerTest {
     Path temporaryDirectory;
 
     @Test
+    void normalPropertyScanningDoesNotRequireMigrationOnlyInputs() {
+        new ApplicationContextRunner().withUserConfiguration(MigrationPropertyScanning.class)
+                .run(context -> assertThat(context).hasNotFailed()
+                        .doesNotHaveBean(OAuthMigrationRunner.MigrationProperties.class));
+    }
+
+    @org.springframework.boot.test.context.TestConfiguration(proxyBeanMethods = false)
+    @org.springframework.boot.context.properties.ConfigurationPropertiesScan(basePackageClasses = OAuthMigrationRunner.class)
+    static class MigrationPropertyScanning { }
+
+    @Test
     void qualifiedRunnerDependenciesResolveWithoutLoadingTheApplication() {
         new ApplicationContextRunner().withUserConfiguration(RunnerWiring.class)
                 .withPropertyValues(

@@ -14,7 +14,7 @@
         <result property="kid" column="kid"/>
         <result property="algorithm" column="algorithm"/>
         <result property="publicJwk" column="public_jwk" jdbcType="OTHER"
-                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+                typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthJsonbTypeHandler"/>
         <result property="privateKeyCiphertext" column="private_key_ciphertext"/>
         <result property="status" column="status"/>
         <result property="publishedAt" column="published_at"/>
@@ -32,20 +32,20 @@
 
     <select id="selectByKid" resultMap="OAuthSigningKeyPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_signing_key
+        FROM tianquan_oauth.oauth_signing_key
         WHERE tenant_id = #{tenantId} AND kid = #{kid} AND deleted_at IS NULL
     </select>
 
     <select id="selectByKidForUpdate" resultMap="OAuthSigningKeyPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_signing_key
+        FROM tianquan_oauth.oauth_signing_key
         WHERE tenant_id = #{tenantId} AND kid = #{kid} AND deleted_at IS NULL
         FOR UPDATE
     </select>
 
     <select id="selectByStatuses" resultMap="OAuthSigningKeyPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_signing_key
+        FROM tianquan_oauth.oauth_signing_key
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL
           AND status IN
           <foreach collection="statuses" item="status" open="(" separator="," close=")">
@@ -58,13 +58,13 @@
 
     <select id="selectActiveById" resultMap="OAuthSigningKeyPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_signing_key
+        FROM tianquan_oauth.oauth_signing_key
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthSigningKeyPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_signing_key
+        FROM tianquan_oauth.oauth_signing_key
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -73,7 +73,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_signing_key
+        UPDATE tianquan_oauth.oauth_signing_key
         SET status = #{po.status}, activated_at = #{po.activatedAt}, last_issued_at = #{po.lastIssuedAt},
             verify_until = #{po.verifyUntil}, retired_at = #{po.retiredAt}, version = #{po.version},
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
@@ -82,7 +82,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_signing_key
+        UPDATE tianquan_oauth.oauth_signing_key
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{po.id}

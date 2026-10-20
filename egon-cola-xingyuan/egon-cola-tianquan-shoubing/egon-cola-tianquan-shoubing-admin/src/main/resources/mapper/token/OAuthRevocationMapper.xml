@@ -27,14 +27,14 @@
 
     <select id="selectByTarget" resultMap="OAuthRevocationPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_revocation
+        FROM tianquan_oauth.oauth_revocation
         WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
           AND deleted_at IS NULL
     </select>
 
     <select id="selectByTargetForUpdate" resultMap="OAuthRevocationPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_revocation
+        FROM tianquan_oauth.oauth_revocation
         WHERE tenant_id = #{tenantId} AND target_type = #{targetType} AND target_key = #{targetKey}
           AND deleted_at IS NULL
         FOR UPDATE
@@ -42,7 +42,7 @@
 
     <select id="selectByProjectionStatus" resultMap="OAuthRevocationPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_revocation
+        FROM tianquan_oauth.oauth_revocation
         WHERE tenant_id = #{tenantId} AND projection_status = #{projectionStatus}
           AND deleted_at IS NULL
           AND (revision &gt; #{afterRevision} OR (revision = #{afterRevision} AND id &gt; #{afterId}))
@@ -52,7 +52,7 @@
 
     <select id="selectExpired" resultMap="OAuthRevocationPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_revocation
+        FROM tianquan_oauth.oauth_revocation
         WHERE tenant_id = #{tenantId} AND expires_at IS NOT NULL AND expires_at &lt;= #{cutoff}
           AND projection_status = 'APPLIED'
           AND id &gt; #{afterId} AND deleted_at IS NULL
@@ -62,13 +62,13 @@
 
     <select id="selectActiveById" resultMap="OAuthRevocationPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_revocation
+        FROM tianquan_oauth.oauth_revocation
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthRevocationPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_revocation
+        FROM tianquan_oauth.oauth_revocation
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -77,7 +77,7 @@
     </select>
 
     <update id="updateExpectedVersion">
-        UPDATE oauth_revocation
+        UPDATE tianquan_oauth.oauth_revocation
         SET expires_at = #{po.expiresAt}, revision = #{po.revision},
             projection_status = #{po.projectionStatus}, version = #{po.version},
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
@@ -86,7 +86,7 @@
     </update>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_revocation
+        UPDATE tianquan_oauth.oauth_revocation
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{po.id}

@@ -224,10 +224,27 @@ public class IsolatedOAuthProvisioningComponent {
     private void prepareGrants(IsolatedOAuthProvisioningIT.IsolatedPhaseCommandDTO command) {
         requireRecipe(command);
         for (var grant : command.getRecipe().getGrants()) {
-            ClientResourceGrantVO committed = provisionGrant(command.getManifest(), preparedRealm(command, grant.getRealmCode()),
-                    preparedRealm(command, "platform"), grant.getClientId(), grant.getResourceServerId(), grant.getInput());
+            TrustedRealmBO realm = preparedRealm(command, grant.getRealmCode());
+            ClientResourceGrantVO committed = provisionGrant(command.getManifest(), realm,
+                    preparedRealm(command, "platform"), grant.getClientId(), grant.getResourceServerId(),
+                    grantForPreparedRealm(realm, grant.getInput()));
             command.getCommittedGrants().add(committed);
         }
+    }
+
+    static UpsertClientResourceGrantDTO grantForPreparedRealm(TrustedRealmBO realm, UpsertClientResourceGrantDTO input) {
+        realm.validateTrustedPartition();
+        if (input.getGrantType() != top.egon.cola.platform.tianquan.shoubing.core.resource.ResourceGrantType.CLIENT_CREDENTIALS
+                || realm.getRealmType() != RealmTypeEnum.TENANT) {
+            return input;
+        }
+        String tenantId = realm.getBusinessTenantId().toString();
+        if (input.getTenantId() != null && !tenantId.equals(input.getTenantId())) {
+            throw new IllegalArgumentException("XINGYUAN_TARGET_UNSAFE");
+        }
+        return UpsertClientResourceGrantDTO.builder().grantType(input.getGrantType()).tenantId(tenantId)
+                .allowedScopes(input.getAllowedScopes()).expectedResourceVersion(input.getExpectedResourceVersion())
+                .expectedGrantVersion(input.getExpectedGrantVersion()).build();
     }
 
     private TrustedRealmBO preparedRealm(IsolatedOAuthProvisioningIT.IsolatedPhaseCommandDTO command, String code) {

@@ -22,7 +22,7 @@
         <result property="traceId" column="trace_id"/>
         <result property="occurredAt" column="occurred_at"/>
         <result property="payload" column="payload" jdbcType="OTHER"
-                typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+                typeHandler="top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthJsonbTypeHandler"/>
         <result property="auditKind" column="audit_kind"/>
         <result property="publicId" column="public_id"/>
         <result property="actorSub" column="actor_sub"/>
@@ -38,20 +38,20 @@
 
     <select id="selectByEventId" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND event_id = #{eventId} AND deleted_at IS NULL
     </select>
 
     <select id="selectByEventIdForUpdate" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND event_id = #{eventId} AND deleted_at IS NULL
         FOR UPDATE
     </select>
 
     <select id="selectByOccurredAt" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND audit_kind = 'OAUTH' AND deleted_at IS NULL
           AND occurred_at &gt;= #{fromInclusive} AND occurred_at &lt; #{toExclusive}
         <if test="afterOccurredAt != null">
@@ -64,7 +64,7 @@
 
     <select id="selectExpired" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND occurred_at &lt;= #{cutoff}
           AND id &gt; #{afterId} AND deleted_at IS NULL
         ORDER BY id ASC
@@ -73,7 +73,7 @@
 
     <select id="selectIdentityPage" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND audit_kind = 'IDENTITY' AND deleted_at IS NULL
         <if test="actorSub != null">AND actor_sub = #{actorSub}</if>
         <if test="eventType != null">AND event_type = #{eventType}</if>
@@ -87,7 +87,7 @@
 
     <select id="countIdentityPage" resultType="long">
         SELECT COUNT(*)
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND audit_kind = 'IDENTITY' AND deleted_at IS NULL
         <if test="actorSub != null">AND actor_sub = #{actorSub}</if>
         <if test="eventType != null">AND event_type = #{eventType}</if>
@@ -99,13 +99,13 @@
 
     <select id="selectActiveById" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND id = #{id} AND deleted_at IS NULL
     </select>
 
     <select id="selectActiveByIds" resultMap="OAuthAuditPOResultMap">
         SELECT <include refid="Columns"/>
-        FROM oauth_audit
+        FROM tianquan_oauth.oauth_audit
         WHERE tenant_id = #{tenantId} AND deleted_at IS NULL AND id IN
         <foreach collection="ids" item="id" open="(" separator="," close=")">
             #{id}
@@ -114,7 +114,7 @@
     </select>
 
     <update id="deleteVersionedById">
-        UPDATE oauth_audit
+        UPDATE tianquan_oauth.oauth_audit
         SET deleted_at = CURRENT_TIMESTAMP AT TIME ZONE 'UTC', version = version + 1,
             update_user_id = #{po.updateUserId}, update_time = #{po.updateTime}
         WHERE tenant_id = #{tenantId} AND id = #{po.id}

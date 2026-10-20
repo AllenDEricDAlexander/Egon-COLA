@@ -8,6 +8,7 @@ import top.egon.cola.component.common.mybatis.extension.EgonColaMapper;
 import top.egon.cola.component.tianshu.admin.model.po.DdcInstancePO;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -46,12 +47,16 @@ public interface DdcInstanceMapper extends EgonColaMapper<DdcInstancePO> {
             @Param("env") String env, @Param("appCode") String appCode);
     List<DdcInstancePO> selectByStatusAndLeaseExpireAtLessThanEqual(@Param("tenantId") Long tenantId,
             @Param("status") String status, @Param("leaseExpireAt") LocalDateTime leaseExpireAt);
-    int markOfflineIfLeaseMatches(@Param("tenantId") Long tenantId, @Param("instanceId") String instanceId,
+    int markOfflineIfLeaseMatches(@Param("tenantId") Long tenantId, @Param("id") Long id,
+            @Param("expectedVersion") Long expectedVersion, @Param("instanceId") String instanceId,
             @Param("leaseId") String leaseId, @Param("status") String status,
-            @Param("updatedAt") LocalDateTime updatedAt, @Param("actor") String actor);
-    int markResourceAdmissionOffline(@Param("tenantId") Long tenantId,
+            @Param("updatedAt") LocalDateTime updatedAt, @Param("updateTime") Instant updateTime,
+            @Param("actor") String actor);
+    int markResourceAdmissionOffline(@Param("tenantId") Long tenantId, @Param("id") Long id,
+            @Param("expectedVersion") Long expectedVersion,
             @Param("resourceServerId") String resourceServerId, @Param("bizCode") String bizCode,
             @Param("env") String env, @Param("appCode") String appCode,
             @Param("resourceVersion") long resourceVersion, @Param("updatedAt") LocalDateTime updatedAt,
+            @Param("updateTime") Instant updateTime,
             @Param("actor") String actor);
 }

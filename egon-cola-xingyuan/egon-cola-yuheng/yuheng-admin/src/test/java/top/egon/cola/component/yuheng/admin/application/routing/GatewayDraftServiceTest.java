@@ -297,6 +297,10 @@ class GatewayDraftServiceTest {
                 NOW
         );
         when(drafts.findById("group-1")).thenReturn(Optional.of(draft));
+        when(drafts.save(any(GatewayDraftBO.class))).thenAnswer(invocation -> {
+            GatewayDraftBO saved = invocation.getArgument(0);
+            return saved.setRevision(saved.getRevision() + 1);
+        });
         when(catalog.findOperation("operation-1"))
                 .thenReturn(Optional.of(operation()));
         when(catalog.loadDefinitions("operation-1"))

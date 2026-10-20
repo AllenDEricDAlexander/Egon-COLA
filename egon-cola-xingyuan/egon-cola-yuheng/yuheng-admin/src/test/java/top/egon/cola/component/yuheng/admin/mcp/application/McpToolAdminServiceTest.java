@@ -83,6 +83,10 @@ class McpToolAdminServiceTest {
         remote = mock(McpRemoteProviderRepository.class);
         servers = mock(McpServerRepository.class);
         drafts = mock(GatewayDraftJpaRepository.class);
+        when(drafts.save(any(GatewayDraftBO.class))).thenAnswer(invocation -> {
+            GatewayDraftBO saved = invocation.getArgument(0);
+            return saved.setRevision(saved.getRevision() + 1);
+        });
         idempotency = mock(IdempotencyRepository.class);
         service = new McpToolAdminService(
                 contentFactory,

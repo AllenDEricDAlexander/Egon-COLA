@@ -1,6 +1,7 @@
 package top.egon.cola.component.yuheng.llm.integration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
@@ -66,6 +67,7 @@ import org.springframework.test.web.client.match.MockRestRequestMatchers;
 import org.springframework.test.web.client.response.MockRestResponseCreators;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.validation.beanvalidation.LocalValidatorFactoryBean;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.context.support.AnnotationConfigWebApplicationContext;
@@ -212,6 +214,89 @@ class LlmSecurityConfigurationTest {
     }
 
     @AfterEach void cleanup() { if (context != null) { context.close(); } validator.close(); meters.close(); SecurityContextHolder.clearContext(); org.slf4j.MDC.clear(); }
+
+    @Test
+    void startupAllowsExplicitLocalLoopbackRedis() {
+        var properties = context.getBean("idpStarterProperties", IdpStarterProperties.class);
+        context.getBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class).setAllowLocalPlaintext(true);
+        var environment = localStartupEnvironment();
+        for (String endpoint : List.of("redis://127.0.0.1:6379", "redis://localhost:6379", "redis://[::1]:6379")) {
+            properties.getRevocation().setPrimaryEndpoint(endpoint);
+            assertThat(startupCheck(environment, true)).as(endpoint).isNotNull();
+        }
+    }
+
+    @Test
+    void startupLocalExceptionKeepsTheSdkRedisUriValidation() {
+        var properties = context.getBean("idpStarterProperties", IdpStarterProperties.class);
+        context.getBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class).setAllowLocalPlaintext(true);
+        var environment = localStartupEnvironment();
+        for (String endpoint : List.of("redis://redis.example:6379", "redis://127.0.0.2:6379",
+                "redis://user:password@127.0.0.1:6379", "redis://127.0.0.1:6379?database=1",
+                "redis://127.0.0.1:6379#fragment")) {
+            properties.getRevocation().setPrimaryEndpoint(endpoint);
+            assertThatThrownBy(() -> startupCheck(environment, true)).as(endpoint)
+                    .isInstanceOf(IllegalStateException.class).hasMessageContaining("must be rediss or exact loopback redis and canonical");
+        }
+    }
+
+    @Test
+    void startupPlaintextRequiresTheFlagLocalProfileAndLocalDeployment() {
+        context.getBean("idpStarterProperties", IdpStarterProperties.class).getRevocation().setPrimaryEndpoint("redis://127.0.0.1:6379");
+        var usage = context.getBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class);
+        var environment = localStartupEnvironment();
+        assertThatThrownBy(() -> startupCheck(environment, true)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_TRANSPORT_REQUIRED");
+        usage.setAllowLocalPlaintext(true);
+        environment.setActiveProfiles("production");
+        assertThatThrownBy(() -> startupCheck(environment, true)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_TRANSPORT_REQUIRED");
+        environment.setActiveProfiles("local");
+        environment.setProperty("DEPLOYMENT_ENV", "production");
+        assertThatThrownBy(() -> startupCheck(environment, true)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_TRANSPORT_REQUIRED");
+        var missingDeployment = new MockEnvironment().withProperty("server.ssl.enabled", "true");
+        missingDeployment.setActiveProfiles("local");
+        assertThatThrownBy(() -> startupCheck(missingDeployment, true)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_TRANSPORT_REQUIRED");
+    }
+
+    @Test
+    void startupAcceptsProductionRedisTlsWithoutTheLocalException() {
+        var environment = new MockEnvironment().withProperty("server.ssl.enabled", "true").withProperty("DEPLOYMENT_ENV", "production");
+        environment.setActiveProfiles("production");
+        assertThat(startupCheck(environment, true)).isNotNull();
+    }
+
+    @Test
+    void startupLocalRedisKeepsAuditAndServerTlsRequired() {
+        context.getBean("idpStarterProperties", IdpStarterProperties.class).getRevocation().setPrimaryEndpoint("redis://127.0.0.1:6379");
+        var usage = context.getBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class).setAllowLocalPlaintext(true);
+        var environment = localStartupEnvironment();
+        assertThatThrownBy(() -> startupCheck(environment, false)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_OBSERVATION_REQUIRED");
+        environment.setProperty("server.ssl.enabled", "false");
+        assertThatThrownBy(() -> startupCheck(environment, true)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_OBSERVATION_REQUIRED");
+        environment.setProperty("server.ssl.enabled", "true");
+        usage.setEnabled(false);
+        assertThatThrownBy(() -> startupCheck(environment, true)).isInstanceOf(IllegalStateException.class)
+                .hasMessage("LLM_SECURITY_OBSERVATION_REQUIRED");
+    }
+
+    private MockEnvironment localStartupEnvironment() {
+        var environment = new MockEnvironment().withProperty("server.ssl.enabled", "true").withProperty("DEPLOYMENT_ENV", "local");
+        environment.setActiveProfiles("local");
+        return environment;
+    }
+
+    private Object startupCheck(MockEnvironment environment, boolean auditReady) {
+        return ReflectionTestUtils.invokeMethod(new LlmSecurityConfiguration(), "llmSecurityObservationStartupCheck",
+                context.getBean("idpObservedVerificationComponent", IdpObservedVerificationComponent.class),
+                context.getBean("oauthUsageObservationProperties", OAuthUsageObservationProperties.class),
+                (java.util.function.BooleanSupplier) () -> auditReady, validator,
+                context.getBean("idpStarterProperties", IdpStarterProperties.class), environment);
+    }
 
     @Test
     void validIdentityMissingInvokeScopeHasNoInvocationOrModelCall() throws Exception {

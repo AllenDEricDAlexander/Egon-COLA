@@ -26,7 +26,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.dao.OAuthStringListJ
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_consent", autoResultMap = true)
+@TableName(value = "oauth_consent", schema = "tianquan_oauth", autoResultMap = true)
 public class OAuthConsentPO extends EgonModel<OAuthConsentPO> {
 
     @TableField(value = "client_pk", updateStrategy = FieldStrategy.NEVER)

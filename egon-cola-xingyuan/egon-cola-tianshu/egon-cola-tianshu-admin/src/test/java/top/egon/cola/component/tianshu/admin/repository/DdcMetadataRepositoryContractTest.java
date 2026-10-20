@@ -136,7 +136,7 @@ class DdcMetadataRepositoryContractTest {
         String application = resource("application.yml");
         String persistence = resource("egon-tianshu-persistence.yml");
         assertThat(application).contains("classpath:egon-tianshu-persistence.yml",
-                "classpath*:mybatis/mapper/tianshu/**/*.xml");
+                "classpath*:mybatis/mapper/tianshu/**/*.xml", "classpath*:mapper/outbox/**/*.xml");
         assertThat(persistence).contains("${TIANSHU_JDBC_URL:${spring.datasource.url}}",
                 "${TIANSHU_DB_USERNAME:${spring.datasource.username}}",
                 "${TIANSHU_DB_PASSWORD:${spring.datasource.password}}");

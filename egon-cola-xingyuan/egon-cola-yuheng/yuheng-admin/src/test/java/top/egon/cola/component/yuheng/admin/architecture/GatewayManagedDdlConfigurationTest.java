@@ -92,6 +92,13 @@ class GatewayManagedDdlConfigurationTest {
     }
 
     @Test
+    void mainConfigurationDisablesTheRetainedHistoricalFlywayScripts() throws IOException {
+        var properties = new org.springframework.beans.factory.config.YamlPropertiesFactoryBean();
+        properties.setResources(new org.springframework.core.io.ClassPathResource("application.yml"));
+        assertThat(properties.getObject()).containsEntry("spring.flyway.enabled", false);
+    }
+
+    @Test
     @DisplayName("基线把每个MP模型落成恰好一张_t0节点表")
     void baselineMaterialisesEveryMappedModelAsOnePhysicalNode() {
         Set<String> baselineTables = tablesIn(baselineSql);

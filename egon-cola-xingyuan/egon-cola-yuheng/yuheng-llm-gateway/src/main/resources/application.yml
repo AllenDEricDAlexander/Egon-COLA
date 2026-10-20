@@ -1,3 +1,10 @@
+spring:
+  autoconfigure:
+    exclude:
+      - org.redisson.spring.starter.RedissonAutoConfigurationV2
+  flyway:
+    enabled: false
+
 springdoc:
   api-docs:
     enabled: ${YUHENG_LLM_OPENAPI_ENABLED:false}

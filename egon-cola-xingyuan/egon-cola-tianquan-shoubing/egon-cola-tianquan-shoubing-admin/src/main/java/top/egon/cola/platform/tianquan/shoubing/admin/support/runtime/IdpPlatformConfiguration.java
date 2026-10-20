@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.ApplicationArguments;
 import org.springframework.boot.ApplicationRunner;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
@@ -40,6 +41,14 @@ import java.util.Map;
 @EnableScheduling
 @Profile("!oauth-migration")
 public class IdpPlatformConfiguration {
+
+    /** Selects the host connection for Common cache when identity and Tianshu clients coexist. */
+    @Bean(name = "redissonClient", destroyMethod = "")
+    @ConditionalOnMissingBean(name = "redissonClient")
+    @ConditionalOnProperty(prefix = "egon.cola.component.cache", name = "enabled", havingValue = "true", matchIfMissing = true)
+    RedissonClient applicationCacheRedissonClient(@Qualifier("rbac3RuntimeRedissonClient") RedissonClient client) {
+        return client;
+    }
 
     @Bean
     ApplicationRunner idpBootstrapApplicationRunner(

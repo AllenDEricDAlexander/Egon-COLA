@@ -538,6 +538,13 @@ public class GatewayEngineRuntimeProperties {
         private int upstreamPendingAcquireMaxCount = 1024;
 
         /**
+         * 中文说明：可选的 HTTPS 上游客户端证书与信任材料；省略时使用默认客户端信任配置。
+         * English summary: Optional HTTPS upstream identity and trust material; omission retains the default client trust.
+         */
+        @jakarta.validation.Valid
+        private Tls upstreamTls;
+
+        /**
          * 中文说明：保存 publicTls 对应的状态、依赖或配置值；字段类型为 {@code Tls}，由 {@code GatewayEngineRuntimeProperties.Http} 在其生命周期内读取或更新。
          * English summary: Holds the state, dependency, or configuration represented by public tls; its type is {@code Tls}, and {@code GatewayEngineRuntimeProperties.Http} reads or updates it during its lifecycle.
          *
@@ -1064,6 +1071,22 @@ public class GatewayEngineRuntimeProperties {
                 int upstreamPendingAcquireMaxCount) {
             this.upstreamPendingAcquireMaxCount =
                     upstreamPendingAcquireMaxCount;
+        }
+
+        /**
+         * 中文说明：读取可选的 HTTPS 上游证书配置。
+         * English summary: Returns the optional HTTPS upstream transport material.
+         */
+        public Tls getUpstreamTls() {
+            return upstreamTls;
+        }
+
+        /**
+         * 中文说明：设置可选的 HTTPS 上游证书配置。
+         * English summary: Sets the optional HTTPS upstream transport material.
+         */
+        public void setUpstreamTls(Tls upstreamTls) {
+            this.upstreamTls = upstreamTls;
         }
 
         /**

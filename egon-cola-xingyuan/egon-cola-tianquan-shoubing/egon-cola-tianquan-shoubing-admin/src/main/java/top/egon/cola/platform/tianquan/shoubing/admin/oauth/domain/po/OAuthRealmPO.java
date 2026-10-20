@@ -25,7 +25,7 @@ import top.egon.cola.platform.tianquan.shoubing.admin.oauth.domain.enums.RealmTy
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_realm", autoResultMap = true)
+@TableName(value = "oauth_realm", schema = "tianquan_oauth", autoResultMap = true)
 public class OAuthRealmPO extends EgonModel<OAuthRealmPO> {
 
     @TableField(value = "issuer", updateStrategy = FieldStrategy.NEVER)

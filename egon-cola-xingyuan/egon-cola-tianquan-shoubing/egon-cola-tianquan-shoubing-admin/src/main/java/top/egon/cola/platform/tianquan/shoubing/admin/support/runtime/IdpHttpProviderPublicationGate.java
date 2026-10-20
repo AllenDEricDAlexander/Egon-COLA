@@ -4,6 +4,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.web.context.WebServerInitializedEvent;
 import org.springframework.context.ApplicationEvent;
 import org.springframework.context.ApplicationListener;
+import org.springframework.scheduling.annotation.Scheduled;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationProperties;
 import top.egon.cola.component.tianshu.http.registration.DdcHttpRegistrationRuntime;
 import top.egon.cola.component.tianshu.model.instance.DdcRuntimeState;
@@ -58,8 +59,18 @@ public final class IdpHttpProviderPublicationGate
             return;
         }
         if (event instanceof ApplicationReadyEvent) {
-            requireReady();
+            if (providerProperties.isFailFast()) {
+                requireReady();
+            }
             applicationReady.set(true);
+            tryPublish();
+        }
+    }
+
+    /** Retries deferred publication while every original readiness prerequisite remains mandatory. */
+    @Scheduled(fixedDelay = 1000)
+    public void retryPublication() {
+        if (!providerProperties.isFailFast()) {
             tryPublish();
         }
     }
@@ -75,12 +86,18 @@ public final class IdpHttpProviderPublicationGate
         if (!applicationReady.get() || serverPort <= 0 || published.get()) {
             return;
         }
-        requireReady();
         int configuredPort = providerProperties.getPort();
         if (configuredPort > 0 && configuredPort != serverPort) {
             throw new IllegalStateException(
                     "Tianquan-Shoubing HTTP provider port does not match the root web server"
             );
+        }
+        if (providerProperties.isFailFast()) {
+            requireReady();
+        } else if (coordinator.state() != DdcRuntimeState.READY
+                || coordinator.currentSession().filter(session -> session.role() == DdcLeaseRole.CONFIG_CLIENT).isEmpty()
+                || !mayPublish(Objects.requireNonNull(readiness.status(), "Tianquan-Shoubing readiness status"))) {
+            return;
         }
         if (published.compareAndSet(false, true)) {
             providerRuntime.onHttpServerReady(serverPort);

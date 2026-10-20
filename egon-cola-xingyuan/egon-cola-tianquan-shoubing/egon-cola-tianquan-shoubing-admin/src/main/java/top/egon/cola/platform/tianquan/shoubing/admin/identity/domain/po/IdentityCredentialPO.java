@@ -25,7 +25,7 @@ import java.time.Instant;
 @Accessors(chain = true)
 @SuperBuilder
 @EqualsAndHashCode(callSuper = true)
-@TableName(value = "oauth_identity_credential", autoResultMap = true)
+@TableName(value = "oauth_identity_credential", schema = "tianquan_oauth", autoResultMap = true)
 public class IdentityCredentialPO extends EgonModel<IdentityCredentialPO> {
 
     @JsonIgnore

@@ -11,6 +11,7 @@ import top.egon.cola.component.yuheng.admin.routing.converter.GatewayDraftPersis
 import top.egon.cola.component.yuheng.admin.routing.domain.bo.GatewayDraftBO;
 import top.egon.cola.component.yuheng.admin.routing.domain.po.GatewayDraftRecordPO;
 import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftMetadataRepository;
+import top.egon.cola.component.yuheng.admin.routing.repository.GatewayDraftJpaRepository;
 import top.egon.cola.component.yuheng.admin.routing.repository.mp.GatewayDraftPersistenceRepository;
 import top.egon.cola.component.yuheng.admin.shared.domain.exception.GatewayAdminRevisionConflictException;
 
@@ -21,19 +22,31 @@ import java.util.Optional;
  * 中文说明：{@code MpGatewayDraftMetadataRepository} 是存储组件，位于当前 Gateway 模块的相关包中，负责网关草稿头元数据存储（MyBatis-Plus 门面）的职责与边界：以业务端口 {@code GatewayDraftMetadataRepository} 暴露草稿头的查找与保存，读写一律经 {@code gateway_draft} 表的受守卫 {@code EgonColaRepository} 持久化边界（租户过滤、活跃读取、乐观锁 CAS），列与时间映射只经 MapStruct 转换器完成；替换写入在同一事务内先加载当前活跃行，按原业务修订号做 CAS 并在持久边界递增业务修订，0 行影响按修订冲突如实抛出。
  * English summary: {@code MpGatewayDraftMetadataRepository} is a MyBatis-Plus facade store in the current Gateway module owning the gateway draft head metadata responsibility: it serves the {@code GatewayDraftMetadataRepository} business port through the guarded {@code EgonColaRepository} boundary of {@code gateway_draft} (tenant filtering, active-only reads, optimistic-lock CAS) with column and time mapping confined to the MapStruct converter; a replace loads the current active row in the same transaction, performs the original-revision CAS, increments the business revision at the persistence boundary, and a zero-row write surfaces truthfully as a revision conflict.
  *
- * 用法 / Usage: 通过业务端口由 Spring 容器注入；事务归属保持在调用方（{@code gatewayTransactionManager}），本实现只组合守卫持久化协作，不外泄 RecordPO，也不取代后续 Step 归属的 {@code GatewayDraftJpaRepository} MP 适配器。/ Use it through the business port via the Spring container; transaction ownership stays with the caller ({@code gatewayTransactionManager}); this implementation only composes guarded persistence collaboration, never leaks a RecordPO, and does not replace the later-Step MP adapter owning {@code GatewayDraftJpaRepository}.
+ * 用法 / Usage: 两个既有草稿头端口共享本实现；事务归属保持在调用方（{@code gatewayTransactionManager}），不外泄 RecordPO。
+ * Both existing draft-head ports share this implementation; transaction ownership stays with the caller ({@code gatewayTransactionManager}), and RecordPO never escapes.
  */
 @Slf4j
 @Repository("mpGatewayDraftMetadataRepository")
 @RequiredArgsConstructor
 @Validated
-public class MpGatewayDraftMetadataRepository implements GatewayDraftMetadataRepository {
+public class MpGatewayDraftMetadataRepository implements GatewayDraftMetadataRepository, GatewayDraftJpaRepository {
 
     @Qualifier("gatewayDraftPersistenceRepository")
     private final GatewayDraftPersistenceRepository draftPersistenceRepository;
 
     @Qualifier("gatewayDraftPersistenceConverter")
     private final GatewayDraftPersistenceConverter draftPersistenceConverter;
+
+    /** 旧端口的主键就是网关组标识。 / The existing port identifies its draft head by gateway group. */
+    @Override
+    public Optional<GatewayDraftBO> findById(String id) {
+        return find(id);
+    }
+
+    /** MP 写入在 save 中即时执行，事务仍由调用方提交。 / MP writes execute during save; callers still commit the transaction. */
+    @Override
+    public void flush() {
+    }
 
     /**
      * 中文说明：执行 find 操作；按网关组读取当前活跃的草稿头业务载体（活跃唯一性由租户内部分唯一索引保证），组键无法命中时如实返回空，再经转换器投影为业务载体。

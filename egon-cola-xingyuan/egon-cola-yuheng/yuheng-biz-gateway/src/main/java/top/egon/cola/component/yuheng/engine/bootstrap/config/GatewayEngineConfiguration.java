@@ -352,7 +352,8 @@ public class GatewayEngineConfiguration {
         return new ReactorNettyHttpUpstreamAdapter(
                 http.getUpstreamMaxConnections(),
                 http.getUpstreamPendingAcquireMaxCount(),
-                http.getIdleTimeout()
+                http.getIdleTimeout(),
+                http.getUpstreamTls() == null ? null : transportSecurity(http.getUpstreamTls())
         );
     }
 
@@ -650,7 +651,7 @@ public class GatewayEngineConfiguration {
             DdcInstanceIdentity ddcIdentity,
             GatewayEngineRuntimeProperties properties,
             IdpServiceOAuth2Client serviceClient,
-            IdpStarterProperties idpProperties) {
+            @Qualifier("idpStarterProperties") IdpStarterProperties idpProperties) {
         GatewayEngineRuntimeProperties.Rpc rpc = properties.getRpc();
         return new RpcGatewaySlotRuntime(
                 registry,

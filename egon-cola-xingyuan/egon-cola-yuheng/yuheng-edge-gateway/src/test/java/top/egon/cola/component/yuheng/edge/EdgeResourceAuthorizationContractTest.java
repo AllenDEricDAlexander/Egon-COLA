@@ -484,7 +484,7 @@ class EdgeResourceAuthorizationContractTest {
             org.springframework.boot.context.properties.ConfigurationPropertiesBindingPostProcessor.register(context);
             context.registerBean("edgeOAuthProperties", EdgeOAuthProperties.class, () -> fixture.properties);
             context.registerBean("redisson", RedissonClient.class, () -> fixture.redis, definition -> definition.setDestroyMethodName(""));
-            context.registerBean("clientRegistrationRepository", org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository.class, () -> fixture.registrations);
+            context.registerBean("reactiveClientRegistrationRepository", org.springframework.security.oauth2.client.registration.ReactiveClientRegistrationRepository.class, () -> fixture.registrations);
             context.registerBean("jacksonObjectMapper", ObjectMapper.class, () -> fixture.mapper);
             context.registerBean("defaultValidator", jakarta.validation.Validator.class, () -> fixture.validator);
             context.registerBean("meterRegistry", io.micrometer.core.instrument.MeterRegistry.class, () -> fixture.meters);
@@ -993,7 +993,8 @@ class EdgeResourceAuthorizationContractTest {
     private static ClientRegistration registration(String id, String scope) {
         URI issuer = id.endsWith("-b") && !id.equals("app-b") ? Fixture.ISSUER_B : ISSUER;
         return ClientRegistration.withRegistrationId(id).clientId("client-" + id).clientSecret("controlled-secret")
-                .clientAuthenticationMethod(ClientAuthenticationMethod.CLIENT_SECRET_BASIC).authorizationGrantType(AuthorizationGrantType.AUTHORIZATION_CODE)
+                .clientAuthenticationMethod(new ClientAuthenticationMethod("client_secret_basic"))
+                .authorizationGrantType(new AuthorizationGrantType("authorization_code"))
                 .redirectUri("https://edge.example/login/oauth2/code/{registrationId}").scope("openid", "offline_access", scope)
                 .authorizationUri(issuer + "/oauth2/authorize").tokenUri(issuer + "/oauth2/token").jwkSetUri(issuer + "/.well-known/jwks.json")
                 .providerConfigurationMetadata(Map.of("revocation_endpoint", issuer + "/oauth2/revoke"))

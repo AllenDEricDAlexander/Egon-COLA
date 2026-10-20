@@ -201,9 +201,6 @@ public class OAuthTokenIssueServiceImpl implements OAuthTokenIssueService {
         OAuthSecuritySnapshotBO snapshot = securityProjection.snapshotForAuthorization(
                 realm, clientPk, "SERVICE", null);
         URI targetUri = Objects.requireNonNull(resource, "resource").normalize();
-        if (!client.getResourceUris().contains(targetUri.toASCIIString())) {
-            throw new OAuth2AuthenticationException(new OAuth2Error("invalid_target", "Request rejected", null));
-        }
         ResourceServer target = resourceServerStore.findByUri(targetUri)
                 .filter(ResourceServer::active)
                 .orElseThrow(() -> new OAuth2AuthenticationException(

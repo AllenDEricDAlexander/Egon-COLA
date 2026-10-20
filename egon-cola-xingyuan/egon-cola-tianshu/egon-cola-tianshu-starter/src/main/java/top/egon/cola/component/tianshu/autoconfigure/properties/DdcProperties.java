@@ -18,6 +18,12 @@ public class DdcProperties {
     private boolean enabled;
 
     /**
+     * 控制面冷启动时延后可选配置的首次拉取；运行期租约与刷新仍确认实际配置。
+     * Defers an optional initial pull during control-plane bootstrap; runtime leases and refresh still determine readiness.
+     */
+    private boolean deferInitialLoad;
+
+    /**
      * 当前应用编码。 Current application code.
      */
     private String appCode = "default-app";
@@ -84,6 +90,14 @@ public class DdcProperties {
      */
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+
+    public boolean isDeferInitialLoad() {
+        return deferInitialLoad;
+    }
+
+    public void setDeferInitialLoad(boolean deferInitialLoad) {
+        this.deferInitialLoad = deferInitialLoad;
     }
 
     /**
