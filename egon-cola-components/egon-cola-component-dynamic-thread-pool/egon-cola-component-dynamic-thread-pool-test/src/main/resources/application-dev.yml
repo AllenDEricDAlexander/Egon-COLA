@@ -16,6 +16,13 @@ egon:
   cola:
     component:
       dtp:
+        context-propagation:
+          custom-thread-locals-enabled: true
+        exception-handling:
+          enabled: true
+          log-interval: 1s
+          uncaught-enabled: true
+          async-void-enabled: true
         observation:
           enabled: true
           slow-task-threshold: 30s

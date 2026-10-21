@@ -1,5 +1,8 @@
 package top.egon.cola.component.dtp.config;
 
+import top.egon.cola.component.dtp.exception.LoggingDtpTaskExceptionHandler;
+import top.egon.cola.component.dtp.exception.DtpTaskExceptionHandler;
+import top.egon.cola.component.dtp.context.DtpTaskContextManager;
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import com.fasterxml.jackson.annotation.PropertyAccessor;
@@ -98,11 +101,23 @@ public class DynamicThreadPoolAutoConfig {
         return new RedisRegistry(dynamicThreadRedissonClient);
     }
 
-    @Bean("managedExecutorRegistry")
     public ManagedExecutorRegistry managedExecutorRegistry(ApplicationContext applicationContext,
                                                             DynamicThreadPoolAutoProperties properties) {
         String appName = resolveAppName(applicationContext, properties);
         return new ManagedExecutorRegistry(appName, resolveInstanceId(applicationContext, properties, appName), properties);
+    }
+
+    @Bean("managedExecutorRegistry")
+    public ManagedExecutorRegistry managedExecutorRegistry(ApplicationContext context, DynamicThreadPoolAutoProperties properties,
+            @Qualifier("dtpTaskContextManager") ObjectProvider<DtpTaskContextManager> contexts,
+            @Qualifier("dtpTaskExceptionHandler") ObjectProvider<DtpTaskExceptionHandler> handlers,
+            @Qualifier("dtpValidationUtils") ObjectProvider<ValidationUtils> validation) {
+        String appName = resolveAppName(context, properties);
+        var fallback = new DtpTaskContextManager();
+        return new ManagedExecutorRegistry(appName, resolveInstanceId(context, properties, appName), properties,
+                () -> contexts.getIfAvailable(() -> fallback),
+                () -> handlers.getIfAvailable(LoggingDtpTaskExceptionHandler::new),
+                validation::getIfAvailable);
     }
 
     /** 保留手工调用自动配置工厂的历史签名；正常自动发现使用初始化后登记。 */

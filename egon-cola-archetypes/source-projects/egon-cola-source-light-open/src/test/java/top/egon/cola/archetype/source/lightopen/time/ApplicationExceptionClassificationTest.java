@@ -15,4 +15,35 @@ class ApplicationExceptionClassificationTest {
         assertFalse(new BaseBusinessException("VALIDATION", "invalid").isAlertRequired());
         assertTrue(new BaseBusinessException("DEPENDENCY", "unavailable", new CommonException(ResultCode.REMOTE_CALL_ERROR)).isAlertRequired());
     }
+
+    @Test
+    void asyncConfigurationDelegatesOnceWhenComponentHandlerIsAvailable() throws Exception {
+        var factory = new org.springframework.beans.factory.support.StaticListableBeanFactory();
+        var seen = new java.util.concurrent.atomic.AtomicReference<Throwable>();
+        factory.addBean("dtpAsyncUncaughtExceptionHandler",
+                (org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler) (error, method, args) -> seen.set(error));
+        var provider = factory.getBeanProvider(org.springframework.aop.interceptor.AsyncUncaughtExceptionHandler.class);
+        var configuration = new top.egon.cola.archetype.source.lightopen.start.config.async.AsyncConfiguration(Runnable::run, provider);
+        var failure = new IllegalStateException("expected");
+        configuration.getAsyncUncaughtExceptionHandler().handleUncaughtException(failure,
+                getClass().getDeclaredMethod("asyncConfigurationDelegatesOnceWhenComponentHandlerIsAvailable"), "private-argument");
+        org.junit.jupiter.api.Assertions.assertSame(failure, seen.get());
+        org.junit.jupiter.api.Assertions.assertNotNull(new top.egon.cola.archetype.source.lightopen.start.config.async.AsyncConfiguration(Runnable::run).getAsyncUncaughtExceptionHandler());
+    }
+
+    @Test
+    void asyncInjectionConstructorRetainsExplicitQualifiersAndCompatibility() {
+        var constructors = top.egon.cola.archetype.source.lightopen.start.config.async.AsyncConfiguration.class.getConstructors();
+        var injected = java.util.Arrays.stream(constructors)
+                .filter(item -> item.isAnnotationPresent(org.springframework.beans.factory.annotation.Autowired.class))
+                .toList();
+        org.junit.jupiter.api.Assertions.assertEquals(1, injected.size());
+        org.junit.jupiter.api.Assertions.assertEquals(2, injected.getFirst().getParameterCount());
+        for (var parameter : injected.getFirst().getParameters()) {
+            org.junit.jupiter.api.Assertions.assertNotNull(
+                    parameter.getAnnotation(org.springframework.beans.factory.annotation.Qualifier.class));
+        }
+        org.junit.jupiter.api.Assertions.assertNotNull(injected.getFirst().getParameters()[0]
+                .getAnnotation(org.springframework.context.annotation.Lazy.class));
+    }
 }

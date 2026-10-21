@@ -52,6 +52,21 @@ class ThreadManageTest {
     }
 
     @Test
+    void thirdPartyExecutorsKeepTheirOldApiWithoutImplementingNewCapabilities() {
+        ManagedExecutor external = org.mockito.Mockito.mock(ManagedExecutor.class);
+        org.mockito.Mockito.when(external.executorName()).thenReturn("third-party");
+        var externalRegistry = new ManagedExecutorRegistry(List.of(external));
+        var validation = new ValidationUtils(validator);
+        var facade = new ThreadManage(externalRegistry, new DynamicThreadPoolService(externalRegistry, validation), validation);
+        assertThat(facade.executor("third-party")).isSameAs(external);
+        facade.executor("third-party").execute(() -> { });
+        org.mockito.Mockito.verify(external).execute(org.mockito.ArgumentMatchers.any(Runnable.class));
+        assertThatThrownBy(() -> facade.runAsync("third-party", () -> { })).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> facade.supplyAsync("third-party", () -> "value")).isInstanceOf(UnsupportedOperationException.class);
+        assertThatThrownBy(() -> facade.contextualExecutor("third-party")).isInstanceOf(UnsupportedOperationException.class);
+    }
+
+    @Test
     void concurrentCreationIsUniqueAndDifferentDefinitionsCannotReplaceIt() throws Exception {
         try (var creators = Executors.newFixedThreadPool(4)) {
             var requests = java.util.stream.IntStream.range(0, 12)

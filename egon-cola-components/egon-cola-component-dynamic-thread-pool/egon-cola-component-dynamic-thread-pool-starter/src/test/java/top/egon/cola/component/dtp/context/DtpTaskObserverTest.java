@@ -13,6 +13,60 @@ import static org.awaitility.Awaitility.await;
 
 class DtpTaskObserverTest {
     @Test
+    void forkJoinCarrierCancellationIsNotTheCompletableFutureBusinessOutcome() throws Exception {
+        var observer = new DtpTaskObserver("app", "one", "opaque-carrier", new DynamicThreadPoolAutoProperties.Observation(), true);
+        try (var executor = new DtpContextAwareExecutorService(Executors.newSingleThreadExecutor(), observer)) {
+            var root = java.util.concurrent.CompletableFuture.supplyAsync(() -> "business", command -> {
+                assertThat(command).isInstanceOf(java.util.concurrent.CompletableFuture.AsynchronousCompletionTask.class);
+                // JDK21 AsyncSupply的ForkJoinTask状态与它承载的CF root相互独立。
+                ((java.util.concurrent.Future<?>) command).cancel(false);
+                executor.execute(command);
+            });
+            assertThat(root.get(2, TimeUnit.SECONDS)).isEqualTo("business");
+        }
+        assertThat(observer.cancelledTasks()).isZero();
+        assertThat(observer.succeededTasks()).isZero();
+        assertThat(observer.failedTasks()).isZero();
+        assertThat(observer.isComplete()).isFalse();
+    }
+
+    @Test
+    void opaqueStageInstallFailureNeverInventsACancelledOrFailedBusinessStage() throws Exception {
+        ThreadLocal<String> local = new ThreadLocal<>();
+        var context = new DtpTaskContextManager(List.of(new io.micrometer.context.ThreadLocalAccessor<String>() {
+            public Object key() { return "opaque"; }
+            public String getValue() { return local.get(); }
+            public void setValue(String value) { throw new IllegalStateException("install"); }
+            public void setValue() { local.remove(); }
+        }));
+        var reports = new java.util.concurrent.atomic.AtomicInteger();
+        var observer = new DtpTaskObserver("app", "one", "opaque-install", new DynamicThreadPoolAutoProperties.Observation(), true,
+                () -> context, () -> failure -> reports.incrementAndGet(), () -> null,
+                new DynamicThreadPoolAutoProperties.ExceptionHandling());
+        CountDownLatch uncaught = new CountDownLatch(1);
+        var factory = observer.threadFactory(task -> {
+            Thread thread = new Thread(task, "opaque-worker");
+            thread.setUncaughtExceptionHandler((worker, failure) -> uncaught.countDown());
+            return thread;
+        });
+        local.set("caller");
+        java.util.concurrent.CompletableFuture<String> root = null;
+        try (var executor = new DtpContextAwareExecutorService(Executors.newSingleThreadExecutor(factory), observer)) {
+            root = java.util.concurrent.CompletableFuture.supplyAsync(() -> "never", executor);
+            assertThat(uncaught.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(root.isDone()).isFalse();
+            assertThat(observer.cancelledTasks()).isZero();
+            assertThat(observer.failedTasks()).isZero();
+            assertThat(observer.contextFailures("INSTALL")).isEqualTo(1);
+            assertThat(reports).hasValue(0);
+            assertThat(observer.isComplete()).isFalse();
+        } finally {
+            if (root != null) { root.cancel(false); }
+            local.remove();
+        }
+    }
+
+    @Test
     void bulkFailuresAndCancellationHaveExactlyOneTerminalOutcome() throws Exception {
         var observer = new DtpTaskObserver("app", "one", "bulk", new DynamicThreadPoolAutoProperties.Observation(), false);
         try (var executor = new DtpContextAwareExecutorService(Executors.newFixedThreadPool(2), observer)) {

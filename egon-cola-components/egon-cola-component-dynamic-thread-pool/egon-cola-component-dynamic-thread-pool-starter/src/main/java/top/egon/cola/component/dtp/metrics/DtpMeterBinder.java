@@ -91,6 +91,12 @@ public class DtpMeterBinder implements MeterBinder, DisposableBean {
                     counter("dtp.task.failed", observer, DtpTaskObserver::failedTasks, tags);
                     counter("dtp.task.cancelled", observer, DtpTaskObserver::cancelledTasks, tags);
                     counter("dtp.task.rejected", observer, DtpTaskObserver::rejectedTasks, tags);
+                    counter("dtp.task.exception.reporter.failures", observer, DtpTaskObserver::reporterFailures, tags);
+                    counter("dtp.executor.uncaught", observer, DtpTaskObserver::uncaughtFailures, tags);
+                    for (String phase : DtpTaskObserver.CONTEXT_PHASES) {
+                        counter("dtp.context.propagation.failures", observer,
+                                value -> value.contextFailures(phase), tags.and("phase", phase));
+                    }
                     Timer wait = timer("dtp.task.queue.wait", tags);
                     Timer execution = timer("dtp.task.execution", tags);
                     timingSubscriptions.put(executor, observer.recordTimings((kind, nanos) -> {

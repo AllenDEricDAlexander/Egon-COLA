@@ -37,6 +37,43 @@ class DynamicThreadPoolAutoPropertiesTest {
         });
     }
 
+    @Test
+    void newDefaultsAndInvalidLogIntervalsAreValidated() {
+        contextRunner.run(context -> {
+            var properties = context.getBean(DynamicThreadPoolAutoProperties.class);
+            assertThat(properties.getContextPropagation().isCustomThreadLocalsEnabled()).isTrue();
+            assertThat(properties.getExceptionHandling().isEnabled()).isTrue();
+            assertThat(properties.getExceptionHandling().isAsyncVoidEnabled()).isTrue();
+            assertThat(properties.getExceptionHandling().isUncaughtEnabled()).isTrue();
+            assertThat(properties.getExceptionHandling().getLogInterval()).hasSeconds(1);
+        });
+        contextRunner.withPropertyValues("egon.cola.component.dtp.exception-handling.log-interval=0s")
+                .run(context -> assertThat(context).hasFailed());
+        var properties = new DynamicThreadPoolAutoProperties.ExceptionHandling();
+        properties.setLogInterval(java.time.Duration.ofSeconds(Long.MAX_VALUE));
+        assertThat(properties.isDurationValid()).isFalse();
+    }
+
+    @Test
+    void allEightApplicationProfilesHaveTheSameNewKeys() {
+        var keys = java.util.List.of(
+                "context-propagation.custom-thread-locals-enabled", "exception-handling.enabled",
+                "exception-handling.log-interval", "exception-handling.uncaught-enabled", "exception-handling.async-void-enabled");
+        for (String module : java.util.List.of("admin", "test")) {
+            for (String profile : java.util.List.of("", "-dev", "-test", "-prod")) {
+                var loader = new org.springframework.beans.factory.config.YamlPropertiesFactoryBean();
+                var path = java.nio.file.Path.of("..", "egon-cola-component-dynamic-thread-pool-" + module,
+                        "src", "main", "resources", "application" + profile + ".yml");
+                loader.setResources(new org.springframework.core.io.FileSystemResource(path));
+                var values = loader.getObject();
+                assertThat(values).isNotNull();
+                for (String key : keys) {
+                    assertThat(values).as(path + " must contain " + key).containsKey("egon.cola.component.dtp." + key);
+                }
+            }
+        }
+    }
+
     @Configuration
     @EnableConfigurationProperties(DynamicThreadPoolAutoProperties.class)
     static class PropertiesConfiguration {

@@ -1,5 +1,10 @@
 package top.egon.cola.component.dtp.executor;
 
+import java.util.function.Supplier;
+import top.egon.cola.component.common.core.validation.ValidationUtils;
+import top.egon.cola.component.dtp.exception.LoggingDtpTaskExceptionHandler;
+import top.egon.cola.component.dtp.exception.DtpTaskExceptionHandler;
+import top.egon.cola.component.dtp.context.DtpTaskContextManager;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import top.egon.cola.component.dtp.config.DynamicThreadPoolAutoProperties;
@@ -36,6 +41,9 @@ public class ManagedExecutorRegistry {
     private final String appName;
     private final String instanceId;
     private final DynamicThreadPoolAutoProperties properties;
+    private final Supplier<DtpTaskContextManager> contexts;
+    private final Supplier<DtpTaskExceptionHandler> handlers;
+    private final Supplier<ValidationUtils> validation;
     private boolean closing;
 
     public ManagedExecutorRegistry(Collection<ManagedExecutor> managedExecutors) {
@@ -57,9 +65,25 @@ public class ManagedExecutorRegistry {
     }
 
     public ManagedExecutorRegistry(String appName, String instanceId, DynamicThreadPoolAutoProperties properties) {
+        this(appName, instanceId, properties, new DtpTaskContextManager());
+    }
+
+    private ManagedExecutorRegistry(String appName, String instanceId, DynamicThreadPoolAutoProperties properties,
+                                   DtpTaskContextManager context) {
+        this(appName, instanceId, properties, () -> context,
+                LoggingDtpTaskExceptionHandler::new, () -> null);
+    }
+
+    public ManagedExecutorRegistry(String appName, String instanceId, DynamicThreadPoolAutoProperties properties,
+            Supplier<DtpTaskContextManager> contexts,
+            Supplier<DtpTaskExceptionHandler> handlers,
+            Supplier<ValidationUtils> validation) {
         this.appName = Objects.requireNonNull(appName, "appName");
         this.instanceId = Objects.requireNonNull(instanceId, "instanceId");
         this.properties = Objects.requireNonNull(properties, "properties");
+        this.contexts = Objects.requireNonNull(contexts, "contexts");
+        this.handlers = Objects.requireNonNull(handlers, "handlers");
+        this.validation = Objects.requireNonNull(validation, "validation");
     }
 
     public synchronized Optional<ManagedExecutor> get(String executorName) {
@@ -70,6 +94,11 @@ public class ManagedExecutorRegistry {
     public synchronized Collection<ManagedExecutor> list() {
         return List.copyOf(new java.util.LinkedHashSet<>(registrations.values()).stream()
                 .map(entry -> entry.managed).toList());
+    }
+
+    synchronized boolean createsRoot(ManagedExecutor executor) {
+        return registrations.values().stream().anyMatch(entry ->
+                entry.managed == executor && entry.delegate instanceof DtpThreadPoolTaskExecutor);
     }
 
     public synchronized ThreadPoolTaskExecutor create(ThreadPoolCreateCommand command,
@@ -84,10 +113,11 @@ public class ManagedExecutorRegistry {
             }
             return pool;
         }
-        DtpTaskObserver observer = new DtpTaskObserver(appName, instanceId, command.getExecutorName(), properties.getObservation(), true);
+        DtpTaskObserver observer = observer(command.getExecutorName(), true);
         DtpThreadPoolTaskExecutor pool = factory.apply(observer);
         try {
             Registration registration = new Registration(pool, adapt(command.getExecutorName(), pool, observer), definition, true);
+            observer.setExecutorKind(registration.managed.kind());
             registrations.put(command.getExecutorName(), registration);
             identities.put(pool, registration);
             pool.onShutdown(() -> closeListeners.forEach(listener -> listener.accept(registration.managed)));
@@ -112,8 +142,9 @@ public class ManagedExecutorRegistry {
             return byIdentity.managed;
         }
         DtpTaskObserver observer = delegate instanceof DtpThreadPoolTaskExecutor pool ? pool.taskObserver()
-                : new DtpTaskObserver(appName, instanceId, beanName, properties.getObservation(), false);
+                : observer(beanName, false);
         Registration registration = new Registration(delegate, adapt(beanName, delegate, observer), null, false);
+        observer.setExecutorKind(registration.managed.kind());
         registrations.put(beanName, registration);
         identities.put(delegate, registration);
         if (delegate instanceof DtpThreadPoolTaskExecutor pool) {
@@ -161,6 +192,11 @@ public class ManagedExecutorRegistry {
             return new BoundedVirtualThreadManagedExecutor(appName, instanceId, name, virtual, observer);
         }
         throw new IllegalArgumentException("unsupported executor type: " + executor.getClass().getName());
+    }
+
+    private DtpTaskObserver observer(String name, boolean complete) {
+        return new DtpTaskObserver(appName, instanceId, name, properties.getObservation(), complete,
+                contexts, handlers, validation, properties.getExceptionHandling());
     }
 
     private void notifyRegistered(ManagedExecutor executor) {

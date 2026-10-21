@@ -50,6 +50,47 @@ public class DynamicThreadPoolAutoProperties {
     @NotNull
     private Observation observation = new Observation();
 
+    @Valid
+    @NotNull
+    private ContextPropagation contextPropagation = new ContextPropagation();
+
+    @Valid
+    @NotNull
+    private ExceptionHandling exceptionHandling = new ExceptionHandling();
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @Builder
+    public static class ContextPropagation {
+        @Builder.Default
+        private boolean customThreadLocalsEnabled = true;
+    }
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Accessors(chain = true)
+    @Builder
+    public static class ExceptionHandling {
+        @Builder.Default
+        private boolean enabled = true;
+        @NotNull
+        @Builder.Default
+        private Duration logInterval = Duration.ofSeconds(1);
+        @Builder.Default
+        private boolean uncaughtEnabled = true;
+        @Builder.Default
+        private boolean asyncVoidEnabled = true;
+
+        @JsonIgnore
+        @AssertTrue(message = "exception log interval must be positive and fit nanoseconds")
+        public boolean isDurationValid() {
+            return positiveDuration(logInterval);
+        }
+    }
+
     @Getter
     @Setter
     @ToString

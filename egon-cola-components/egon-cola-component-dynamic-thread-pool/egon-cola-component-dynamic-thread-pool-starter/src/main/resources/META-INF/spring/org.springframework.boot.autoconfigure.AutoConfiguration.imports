@@ -1,1 +1,2 @@
 top.egon.cola.component.dtp.config.DynamicThreadPoolAutoConfig
+top.egon.cola.component.dtp.config.DtpTaskContextAutoConfiguration

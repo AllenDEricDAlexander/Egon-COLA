@@ -196,6 +196,34 @@ class ExceptionClassificationTest {
         }
     }
 
+    @Test
+    void metadataIsBoundedAndCannotOverridePublicExceptionOrTraceFields() {
+        Logger logger = (Logger) LoggerFactory.getLogger("exception.metadata.test");
+        ListAppender<ILoggingEvent> events = attach(logger);
+        try {
+            MDC.put("traceId", "trusted-trace");
+            var metadata = new java.util.LinkedHashMap<String, String>();
+            metadata.put("traceId", "forged");
+            metadata.put("exceptionCategory", "BUSINESS");
+            metadata.put("executorName", "orders\nworker");
+            metadata.put("methodName", "x".repeat(256));
+            metadata.put("password", "must-not-be-logged");
+            metadata.put(null, "invalid");
+            ExceptionLogger.log(logger, new IllegalStateException("private-error"), metadata);
+            var event = events.list.getFirst();
+            var fields = event.getKeyValuePairs().stream().collect(Collectors.toMap(pair -> pair.key, pair -> pair.value));
+            assertEquals("trusted-trace", fields.get("traceId"));
+            assertEquals("SYSTEM", fields.get("exceptionCategory"));
+            assertEquals("ordersworker", fields.get("executorName"));
+            assertEquals(128, fields.get("methodName").toString().length());
+            assertFalse(fields.containsKey("password"));
+            assertFalse(event.getThrowableProxy().getMessage().contains("private-error"));
+        } finally {
+            MDC.clear();
+            logger.detachAppender(events);
+        }
+    }
+
     private static ListAppender<ILoggingEvent> attach(Logger logger) {
         logger.setLevel(Level.TRACE);
         logger.setAdditive(false);

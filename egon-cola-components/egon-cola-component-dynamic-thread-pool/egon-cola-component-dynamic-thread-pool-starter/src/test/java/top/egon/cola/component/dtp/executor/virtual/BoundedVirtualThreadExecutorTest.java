@@ -450,6 +450,71 @@ public class BoundedVirtualThreadExecutorTest {
         assertThat(actual.virtualThread()).isTrue();
     }
 
+    @Test
+    void observedRawSubmitCompletesAndReleasesPermitWhenContextInstallFails() throws Exception {
+        ThreadLocal<String> user = new ThreadLocal<>();
+        var contexts = new top.egon.cola.component.dtp.context.DtpTaskContextManager(List.of(
+                new io.micrometer.context.ThreadLocalAccessor<String>() {
+                    public Object key() { return "virtual.user"; }
+                    public String getValue() { return user.get(); }
+                    public void setValue(String value) { throw new IllegalStateException("install"); }
+                    public void setValue() { user.remove(); }
+                }));
+        var observer = new top.egon.cola.component.dtp.context.DtpTaskObserver("app", "one", "virtual",
+                new top.egon.cola.component.dtp.config.DynamicThreadPoolAutoProperties.Observation(), false, contexts);
+        var executor = new BoundedVirtualThreadExecutor("install-failure", 1);
+        executor.setTaskObserver(observer);
+        var invoked = new java.util.concurrent.atomic.AtomicBoolean();
+        user.set("request");
+        try {
+            Future<String> future = executor.submit(() -> { invoked.set(true); return "wrong"; });
+            assertThatThrownBy(() -> future.get(2, TimeUnit.SECONDS))
+                    .hasCauseInstanceOf(top.egon.cola.component.dtp.exception.DtpContextPropagationException.class);
+            org.awaitility.Awaitility.await().untilAsserted(() -> {
+                assertThat(executor.availablePermits()).isEqualTo(1);
+                assertThat(executor.runningTasks()).isZero();
+                assertThat(observer.failedTasks()).isEqualTo(1);
+            });
+            assertThat(invoked).isFalse();
+            assertThat(user.get()).isEqualTo("request");
+        } finally { executor.shutdown(); user.remove(); }
+    }
+
+    @Test
+    void cancellingRawFutureDuringContextInstallKeepsCancellationAndReleasesPermit() throws Exception {
+        ThreadLocal<String> user = new ThreadLocal<>();
+        CountDownLatch entered = new CountDownLatch(1);
+        CountDownLatch release = new CountDownLatch(1);
+        var contexts = new top.egon.cola.component.dtp.context.DtpTaskContextManager(List.of(
+                new io.micrometer.context.ThreadLocalAccessor<String>() {
+                    public Object key() { return "virtual.cancel"; }
+                    public String getValue() { return user.get(); }
+                    public void setValue(String value) {
+                        entered.countDown();
+                        try { release.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+                        throw new IllegalStateException("install failed after cancellation");
+                    }
+                    public void setValue() { user.remove(); }
+                }));
+        var observer = new top.egon.cola.component.dtp.context.DtpTaskObserver("app", "one", "cancel",
+                new top.egon.cola.component.dtp.config.DynamicThreadPoolAutoProperties.Observation(), false, contexts);
+        var executor = new BoundedVirtualThreadExecutor("cancel-install", 1);
+        executor.setTaskObserver(observer);
+        user.set("caller");
+        try {
+            Future<String> future = executor.submit(() -> "never");
+            assertThat(entered.await(2, TimeUnit.SECONDS)).isTrue();
+            assertThat(future.cancel(true)).isTrue();
+            assertThat(user.get()).isEqualTo("caller");
+            release.countDown();
+            org.awaitility.Awaitility.await().untilAsserted(() -> {
+                assertThat(executor.availablePermits()).isEqualTo(1);
+                assertThat(observer.cancelledTasks()).isEqualTo(1);
+                assertThat(observer.failedTasks()).isZero();
+            });
+        } finally { release.countDown(); executor.shutdown(); user.remove(); }
+    }
+
     private record TaskContext(TraceContext traceContext, String externalMdc, boolean virtualThread) {
     }
 

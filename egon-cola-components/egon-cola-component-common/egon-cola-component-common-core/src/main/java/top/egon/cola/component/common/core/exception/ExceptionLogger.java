@@ -10,6 +10,7 @@ import top.egon.cola.component.common.trace.TraceContext;
 import java.io.Serial;
 import java.util.Collections;
 import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletionException;
@@ -18,10 +19,18 @@ import java.util.concurrent.ExecutionException;
 /** One structured event at the owning handling boundary; exception creation never logs. */
 public final class ExceptionLogger {
 
+    private static final Set<String> METADATA_KEYS = Set.of(
+            "failureId", "appName", "instanceId", "executorName", "executorKind", "source",
+            "threadName", "methodName", "observedAt", "suppressedCount", "contextPhase", "accessorKey");
+
     private ExceptionLogger() {
     }
 
     public static void log(Logger logger, Throwable failure) {
+        log(logger, failure, Map.of());
+    }
+
+    public static void log(Logger logger, Throwable failure, Map<String, String> metadata) {
         Objects.requireNonNull(logger, "logger");
         Objects.requireNonNull(failure, "failure");
         Throwable classified = unwrap(failure);
@@ -42,6 +51,17 @@ public final class ExceptionLogger {
                 .addKeyValue("requestId", safe(trace.requestId()));
         if (category != ExceptionCategory.BUSINESS) {
             event.setCause(sanitized(failure, Collections.newSetFromMap(new IdentityHashMap<>()), 0));
+        }
+        if (metadata != null) {
+            var iterator = metadata.entrySet().iterator();
+            for (int scanned = 0; scanned < 16 && iterator.hasNext(); scanned++) {
+                var field = iterator.next();
+                if (field.getKey() != null && METADATA_KEYS.contains(field.getKey()) && field.getValue() != null) {
+                    String value = field.getValue().codePoints().filter(code -> !Character.isISOControl(code))
+                            .limit(128).collect(StringBuilder::new, StringBuilder::appendCodePoint, StringBuilder::append).toString();
+                    event.addKeyValue(field.getKey(), value);
+                }
+            }
         }
         event.log("exception handled");
     }

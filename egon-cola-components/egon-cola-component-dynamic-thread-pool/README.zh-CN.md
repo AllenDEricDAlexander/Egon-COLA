@@ -388,7 +388,7 @@ ExecutorSnapshot snapshot = executor.snapshot();
 
 完整观察适用于新池的 execute/submit、受控 invokeAll/invokeAny。已有外接池通过 adapter 获得上下文与执行观察，但不修改其拒绝处理器；自定义静默丢弃无法完整推断，能力标识为0。直接调用未增强的原 Bean 或从 getThreadPoolExecutor() 取得底层对象会绕过相应提交边界。
 
-`CompletableFuture.runAsync/supplyAsync` 必须显式传入治理 executor 才传播 MDC。JDK 内部 AsynchronousCompletionTask 不公开 stage 结果，因此仅记录提交/耗时并将完整能力标识置0，不把其 Runnable 返回当作业务成功；stage 异常仍通过原 CompletableFuture 读取。需要完整终态统计时使用受控 `ExecutorService.submit`。这项增强不改变异步 stage、Future.cancel 或原拒绝策略的行为。
+`CompletableFuture.runAsync/supplyAsync` 必须显式传入治理 executor 才传播 MDC。JDK 内部 AsynchronousCompletionTask 不公开 stage 结果，因此仅记录提交/耗时并将完整能力标识置0，不把其 Runnable 返回当作业务成功；stage 异常仍通过原 CompletableFuture 读取。需要完整终态统计时使用 `ThreadManage.runAsync/supplyAsync` 受控根阶段或 `ExecutorService.submit`。这项增强不改变异步 stage、Future.cancel 或原拒绝策略的行为。
 
 ### 动态调整与生命周期
 
@@ -417,3 +417,76 @@ egon:
 ```
 
 告警复用 report.interval：启用后队列使用率达到阈值并连续采样满足次数，或出现拒绝增量时记录压力告警；SynchronousQueue 不计算队列占比。告警不自动改线程数，不强制中断慢任务；慢任务日志在执行结束时诊断。Admin 使用 OpenAPI 3，文档路径 `/v3/api-docs`；dev/test 可启用，base/prod 默认关闭，不增加 UI 或认证机制。
+
+## 线程切换上下文与统一异常处理
+
+托管入口对普通任务每次提交捕获快照，执行前备份当前线程状态，安装任务上下文，在 `finally` 恢复。覆盖线程复用、空值、嵌套、CallerRuns 和虚拟线程；取消线程不会代为关闭实际执行线程的 Scope。
+
+原 Runnable/Callable/Supplier 继续使用。需要真实 root CompletableFuture 观察时：
+
+```java
+CompletableFuture<Void> sent = threadManage.runAsync("emailExecutor", () -> sendEmail());
+CompletableFuture<String> loaded = threadManage.supplyAsync("emailExecutor", () -> loadMessage());
+```
+
+返回被观察的原 root，上下文安装失败也会异常完成。业务不调用 `get()`，真实失败也进入默认策略。取消、拒绝、调用方等待超时分别处理，不返回伪成功，不自动重试或补偿。
+
+### 自定义 ThreadLocal 一次接入
+
+默认已传递完整 MDC/Trace。通过 `io.micrometer.context.ThreadLocalAccessor` 适配已有 holder，并添加 `@Qualifier("dtpContextAccessor")`，例如：
+
+```java
+@Bean("businessContextAccessor")
+@Qualifier("dtpContextAccessor")
+ThreadLocalAccessor<String> businessContextAccessor() {
+    return new ThreadLocalAccessor<>() {
+        public Object key() { return "business.context"; }
+        public String getValue() { return BusinessContext.get(); }
+        public void setValue(String value) { BusinessContext.set(value); }
+        public void setValue() { BusinessContext.remove(); }
+    };
+}
+```
+
+各 holder 使用不同稳定 key；只收集显式限定的 Bean，不扫描全局 ThreadLocal。getter 不应有副作用，返回不可变值或防御副本；任务无值时 remove，结束后恢复旧值。事务、连接、Session、Servlet 对象、凭据和自动 SecurityContext 复制不在传递范围。
+
+旧 Dtp/TraceRoute 包装保留构造时的 Trace/MDC 捕获，新增 holder 按托管提交点捕获；无参 DtpTaskDecorator 和静态 DtpThreads 保留 Trace-only 行为。自定义旧包装私有快照不可见时保持业务执行语义，诊断明确 Trace 未知，避免错误关联提交请求。
+
+### CompletableFuture 后续阶段与 Spring Async
+
+普通 executor 捕获的是实际 execute 时点，可能已经是另一个完成线程。需要固定请求上下文时，在正确请求/任务作用域内绑定一次：
+
+```java
+Executor flow = threadManage.contextualExecutor("emailExecutor");
+CompletableFuture<String> converted = upstream.thenApplyAsync(this::convert, flow);
+```
+
+后续 Async 方法显式使用该视图，并保持请求/链局部；每次调度仍是独立任务。非 Async 节点按 JDK 规则执行。绑定负责上下文，不能读取任意隐藏 stage 结果；root helper 观察其掌握的根阶段，业务继续保留和处理最终返回链。
+
+没有用户 TaskDecorator 时，Boot 默认 builder 自动接入；已有装饰器保留，可一次使用 Spring CompositeTaskDecorator 组合。六种标准源工程通过已有 AsyncConfigurer 可选委托 `dtpAsyncUncaughtExceptionHandler`；旧生成/自定义配置按此方式一次接入。不增加第二个用户配置器，原执行器选择及 Boot force 模式保持。
+
+默认 `dtpTaskExceptionHandler` 复用公共 ExceptionLogger 分类、级别和脱敏堆栈；提供该精确名称的 Bean 可替换默认策略。真实计数和策略通知不因默认日志限频丢失，系统异常、业务异常、慢诊断分别预算。策略应线程安全、快速，不同步回投同一故障池。组件只组合自建工厂的 uncaught 处理，保留原工厂属性/handler。
+
+完整终态以受控池/入口为准。第三方 Spring Future 若只能通过 TaskDecorator 接入，安装失败时取消尚未执行业务的原 Future 并记录技术诊断，其内部异常 setter 不可访问；组件拥有的虚拟 Future 则以原技术原因异常完成并确保释放许可。任意第三方隐藏阶段不在完整观测保证内。
+
+### 配置和技术指标
+
+```yaml
+egon:
+  cola:
+    component:
+      dtp:
+        context-propagation:
+          custom-thread-locals-enabled: true
+        exception-handling:
+          enabled: true
+          log-interval: 1s
+          uncaught-enabled: true
+          async-void-enabled: true
+```
+
+关闭额外 holder 仍保留 Trace/MDC；统计与异常报告分别控制。关闭 void 报告时，已观察的 void 失败仍不会误记成功。
+
+增加 `dtp.context.propagation.failures`（固定 CAPTURE/BACKUP/INSTALL/RESTORE）、`dtp.task.exception.reporter.failures`、`dtp.executor.uncaught`。沿用原池维度，不将 Trace、用户或 holder 值作为标签；未知池只诊断，不编造完整池计数。原线程/队列/虚拟限制调整和 Redis 契约保留。
+
+starter 直接声明仓库已有、BOM 管理的 `io.micrometer:context-propagation`；指标后端仍可选。测试、编译和打包不启动项目或外部服务。

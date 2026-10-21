@@ -15,6 +15,10 @@ import top.egon.cola.component.dtp.domain.model.entity.UpdateResult;
 import top.egon.cola.component.dtp.executor.managed.DtpThreadPoolTaskExecutor;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.function.Supplier;
+import top.egon.cola.component.dtp.context.DtpTaskObserver;
 
 /**
  * @description 统一命名管理入口，复用现有注册表及调参服务
@@ -70,6 +74,30 @@ public class ThreadManage implements DisposableBean {
     }
 
     public UpdateResult changeThreadPool(ExecutorUpdateCommand command) { return service.updateExecutor(command); }
+
+    public CompletableFuture<Void> runAsync(String executorName, Runnable task) {
+        Objects.requireNonNull(task, "task");
+        ManagedExecutor executor = executor(executorName);
+        return observer(executor).completable(executor, task, () -> { task.run(); return null; }, registry.createsRoot(executor));
+    }
+
+    public <T> CompletableFuture<T> supplyAsync(String executorName, Supplier<T> task) {
+        Objects.requireNonNull(task, "task");
+        ManagedExecutor executor = executor(executorName);
+        return observer(executor).completable(executor, task, task::get, registry.createsRoot(executor));
+    }
+
+    /** 请求/异步链局部视图：绑定调用时点的上下文，不应注册为跨请求单例。 */
+    public Executor contextualExecutor(String executorName) {
+        ManagedExecutor executor = executor(executorName);
+        return observer(executor).contextualExecutor(executor, registry.createsRoot(executor));
+    }
+
+    private DtpTaskObserver observer(ManagedExecutor executor) {
+        DtpTaskObserver observer = executor.taskObserver();
+        if (observer == null) { throw new UnsupportedOperationException("executor does not support managed task observation"); }
+        return observer;
+    }
 
     @Override
     public void destroy() { registry.closeOwned(); }

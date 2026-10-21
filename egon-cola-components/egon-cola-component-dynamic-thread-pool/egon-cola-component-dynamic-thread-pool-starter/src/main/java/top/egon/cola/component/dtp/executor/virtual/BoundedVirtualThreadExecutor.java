@@ -68,9 +68,11 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         this.threadNamePrefix = Objects.requireNonNull(threadNamePrefix, "threadNamePrefix");
         this.concurrencyLimit = new AtomicInteger(concurrencyLimit);
         this.semaphore = new AdjustableSemaphore(concurrencyLimit);
-        ExecutorService virtualExecutor = Executors.newThreadPerTaskExecutor(
-                Thread.ofVirtual().name(threadNamePrefix + "-", 0).factory()
-        );
+        java.util.concurrent.ThreadFactory factory = Thread.ofVirtual().name(threadNamePrefix + "-", 0).factory();
+        ExecutorService virtualExecutor = Executors.newThreadPerTaskExecutor(task -> {
+            DtpTaskObserver observer = taskObserver;
+            return (observer == null ? factory : observer.threadFactory(factory)).newThread(task);
+        });
         this.delegate = new DtpContextAwareExecutorService(virtualExecutor);
     }
 
@@ -202,7 +204,13 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
 
     private void schedule(Runnable command, boolean countOutcome) {
         DtpTaskObserver observer = taskObserver;
-        Runnable observed = observer == null ? command : observer.decorate(command, false);
+        Runnable observed;
+        if (observer != null && command instanceof MetricsFutureTask<?> future) {
+            future.lifecycleCallable.externallyScheduled = true;
+            observed = observer.decorateFuture(future.originalTask, future, future::failBeforeExecution, false);
+        } else {
+            observed = observer == null ? command : observer.decorate(command, false);
+        }
         submittedTasks.incrementAndGet();
         if (!semaphore.tryAcquire()) {
             rejectedTasks.incrementAndGet();
@@ -211,7 +219,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         }
         boolean accepted = false;
         try {
-            if (command instanceof MetricsFutureTask<?>) {
+            if (command instanceof MetricsFutureTask<?> && observer == null) {
                 delegate.execute(observed);
             } else {
                 delegate.execute(() -> {
@@ -339,21 +347,27 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
     private static class MetricsFutureTask<T> extends FutureTask<T> implements MetricsAwareTask {
 
         private final MetricsLifecycleCallable<T> lifecycleCallable;
+        private final Object originalTask;
 
         private MetricsFutureTask(BoundedVirtualThreadExecutor owner, Runnable runnable, T result) {
             this(new MetricsLifecycleCallable<>(owner, () -> {
                 runnable.run();
                 return result;
-            }));
+            }), runnable);
         }
 
         private MetricsFutureTask(BoundedVirtualThreadExecutor owner, Callable<T> callable) {
-            this(new MetricsLifecycleCallable<>(owner, callable));
+            this(new MetricsLifecycleCallable<>(owner, callable), callable);
         }
 
-        private MetricsFutureTask(MetricsLifecycleCallable<T> lifecycleCallable) {
+        private MetricsFutureTask(MetricsLifecycleCallable<T> lifecycleCallable, Object originalTask) {
             super(lifecycleCallable);
             this.lifecycleCallable = lifecycleCallable;
+            this.originalTask = originalTask;
+        }
+
+        private void failBeforeExecution(Throwable failure) {
+            setException(failure);
         }
 
         @Override
@@ -361,7 +375,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
             try {
                 super.run();
             } finally {
-                if (!lifecycleCallable.runningStarted()) {
+                if (!lifecycleCallable.externallyScheduled && !lifecycleCallable.runningStarted()) {
                     lifecycleCallable.releasePermitOnce();
                 }
             }
@@ -378,6 +392,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         private final AtomicBoolean runningStarted = new AtomicBoolean();
 
         private final AtomicBoolean permitReleased = new AtomicBoolean();
+        private volatile boolean externallyScheduled;
 
         private MetricsLifecycleCallable(BoundedVirtualThreadExecutor owner, Callable<T> callable) {
             this.owner = owner;
@@ -387,6 +402,7 @@ public class BoundedVirtualThreadExecutor extends AbstractExecutorService {
         @Override
         public T call() throws Exception {
             runningStarted.set(true);
+            if (externallyScheduled) { return callable.call(); }
             owner.runningTasks.incrementAndGet();
             try {
                 return callable.call();

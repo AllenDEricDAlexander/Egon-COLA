@@ -30,4 +30,9 @@ class DtpDependencyBoundaryTest {
         assertThrows(ClassNotFoundException.class, () ->
                 Class.forName("com.alibaba.fastjson2.JSON"));
     }
+
+    @Test
+    void approvedContextPropagationProtocolIsAvailable() throws Exception {
+        Class.forName("io.micrometer.context.ThreadLocalAccessor");
+    }
 }

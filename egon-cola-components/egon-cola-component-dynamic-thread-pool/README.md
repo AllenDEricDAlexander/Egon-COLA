@@ -316,7 +316,7 @@ curl 'http://localhost:8089/api/v1/dtp/events?appName=order-service&date=2026070
 2. The admin does not connect directly to business applications. All state reads and change notifications pass through Redis, reducing runtime coupling.
 3. `ManagedExecutor` adapts executor capabilities so platform thread pools, Spring thread pools, and virtual-thread executors share one snapshot and update model.
 4. Adjustment commands include `appName`, `instanceId`, `executorName`, and `executorKind`. The starter validates the identity before updating, preventing a command from being applied to the wrong instance.
-5. `common-trace` owns context capture and restoration; DTP owns executor governance and the adapters that apply that context at each submission boundary.
+5. `common-trace` owns Trace/MDC snapshots; DTP coordinates declared additional accessors and executor governance at each submission boundary.
 
 ### Implementation Details
 
@@ -374,7 +374,7 @@ Tags remain appName, instanceId, executorName, executorKind and virtual. traceId
 
 New pools observe execute/submit and controlled invokeAll/invokeAny. Adopted pools gain adapter context/execution observation without modifying their rejection handlers, so silent custom drops cannot be inferred completely; observation.complete is 0. Raw Bean calls or direct getThreadPoolExecutor() access can bypass instrumentation.
 
-Pass the managed executor explicitly to CompletableFuture.runAsync/supplyAsync for MDC propagation. JDK AsynchronousCompletionTask hides the stage result: record submission/timing and mark observation incomplete rather than count its Runnable return as business success. Read errors from the original CompletableFuture; use controlled ExecutorService.submit for complete terminal counters. Legacy Future.cancel and rejection-policy behavior is preserved.
+Pass the managed executor explicitly to CompletableFuture.runAsync/supplyAsync for MDC propagation. JDK AsynchronousCompletionTask hides the stage result: record submission/timing and mark observation incomplete rather than count its Runnable return as business success. Read errors from the original CompletableFuture; use ThreadManage.runAsync/supplyAsync for controlled roots or ExecutorService.submit for complete terminal counters. Legacy Future.cancel and rejection-policy behavior is preserved.
 
 ### Resizing, delivery and lifecycle
 
@@ -387,3 +387,76 @@ Spring owns factory pools exposed as Beans. ThreadManage closes non-Bean factory
 Configuration keys below `egon.cola.component.dtp.observation`: enabled=true, slow-task-threshold=30s, queue-wait-threshold=5s; alarm.enabled=false, queue-usage-threshold=0.8, consecutive-samples=3, cooldown=60s. Pressure checks reuse the reporting interval; zero-buffer queues have no queue-use ratio. Alarms never resize pools automatically. Slow execution is diagnosed after completion, without interrupting tasks.
 
 Admin generates OpenAPI 3 at /v3/api-docs, enabled in dev/test and disabled by default in base/prod. No Swagger UI, database, authentication mechanism or additional management service is introduced.
+
+## Task context switching and unified exceptions
+
+Managed entries capture each ordinary submission, back up the executing thread, install the snapshot and restore its previous state in `finally`. This covers worker reuse, missing values, nesting, CallerRuns and virtual threads. Cancellation never closes another thread's Scope.
+
+Runnable/Callable/Supplier remain available. Use these helpers for observable root stages:
+
+```java
+CompletableFuture<Void> sent = threadManage.runAsync("emailExecutor", () -> sendEmail());
+CompletableFuture<String> loaded = threadManage.supplyAsync("emailExecutor", () -> loadMessage());
+```
+
+The returned object is the actual observed root. Failed context installation also completes that root exceptionally. Real failures are reported even without business `get()`. Cancellation, rejection and caller waiting timeouts remain distinct; the framework does not retry, compensate or return a replacement success.
+
+### Register an additional ThreadLocal once
+
+Trace/full MDC propagation is built in. Adapt an existing holder using `io.micrometer.context.ThreadLocalAccessor` and qualifier `dtpContextAccessor`, for example:
+
+```java
+@Bean("businessContextAccessor")
+@Qualifier("dtpContextAccessor")
+ThreadLocalAccessor<String> businessContextAccessor() {
+    return new ThreadLocalAccessor<>() {
+        public Object key() { return "business.context"; }
+        public String getValue() { return BusinessContext.get(); }
+        public void setValue(String value) { BusinessContext.set(value); }
+        public void setValue() { BusinessContext.remove(); }
+    };
+}
+```
+
+Each holder needs a distinct stable key. Only explicitly qualified Beans are selected; there is no global ThreadLocal scan. Getters must be side-effect free and return immutable values or defensive copies. Missing values are removed during the task, then previous values restored. Transactions, connections, sessions, servlet objects, credentials and automatic SecurityContext copying are outside this contract.
+
+Legacy Dtp/TraceRoute wrappers retain construction-time Trace/MDC capture; additional holders are captured at managed submission. The no-argument DtpTaskDecorator and static DtpThreads retain Trace-only behavior. Opaque custom legacy wrappers preserve execution behavior and report unknown Trace rather than blame the submitting request.
+
+### CompletableFuture continuations and Spring Async
+
+An ordinary executor captures at its actual execute call, which may occur on another completion thread. Bind once in the intended request/task scope for continuations:
+
+```java
+Executor flow = threadManage.contextualExecutor("emailExecutor");
+CompletableFuture<String> converted = upstream.thenApplyAsync(this::convert, flow);
+```
+
+Pass the view to subsequent Async methods and keep it request/chain local. Each dispatch has a separate task token. Non-Async stages follow JDK rules. Binding supplies context, not hidden stage results: root helpers observe their roots; retain and handle the final business stage normally.
+
+Boot's default builder receives the decorator when no user TaskDecorator exists. Existing decorators remain intact; compose once with Spring CompositeTaskDecorator when needed. Six maintained source configurations optionally delegate their existing AsyncConfigurer to `dtpAsyncUncaughtExceptionHandler`. Existing generated/custom configurations need that one-time delegation. No second user configurer is installed; executor selection, including Boot force mode, stays intact.
+
+The default `dtpTaskExceptionHandler` reuses Common ExceptionLogger levels, classification and redacted stacks. Supply a Bean with that exact name to replace it. Handler notifications and real counters are independent of default log limiting; system, business and slow diagnostics have separate budgets. Keep handlers quick/thread safe and avoid synchronous resubmission to the failing pool. Component-owned factories compose uncaught handling while preserving original factory attributes and handlers.
+
+Full terminal semantics belong to controlled pools/entries. A foreign Spring Future reachable only through TaskDecorator is cancelled if installation fails before business execution, because its exception setter is inaccessible; a technical diagnostic is recorded. Owned virtual futures are completed with the original technical cause and always release their permit. Arbitrary hidden third-party stages remain outside complete observation.
+
+### Settings and technical metrics
+
+```yaml
+egon:
+  cola:
+    component:
+      dtp:
+        context-propagation:
+          custom-thread-locals-enabled: true
+        exception-handling:
+          enabled: true
+          log-interval: 1s
+          uncaught-enabled: true
+          async-void-enabled: true
+```
+
+Disabling extra holders retains Trace/MDC. Observation statistics and exception reporting are independent. Disabling void reports still avoids counting an observed void failure as success.
+
+Additional counters: `dtp.context.propagation.failures` (fixed CAPTURE/BACKUP/INSTALL/RESTORE phases), `dtp.task.exception.reporter.failures`, `dtp.executor.uncaught`. Existing pool dimensions are retained; Trace/user/accessor values never become metric tags. Unknown-pool diagnostics invent no pool counters. Existing queue/thread/virtual-limit resizing and Redis contracts remain unchanged.
+
+The starter directly declares the existing BOM-managed `io.micrometer:context-propagation` library; metrics remain optional. Tests/builds do not start applications or external infrastructure.

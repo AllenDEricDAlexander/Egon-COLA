@@ -100,7 +100,7 @@ class RemainingComponentContractTest {
     }
 
     @Test
-    void handwrittenEnumsAreAllGovernedAndNoLocalExceptionHierarchyExists() throws IOException {
+    void handwrittenEnumsAreAllGovernedAndContextFailureUsesCommonHierarchy() throws IOException {
         List<String> enums = new ArrayList<>();
         List<String> exceptions = new ArrayList<>();
         try (Stream<Path> sources = mainSources()) {
@@ -113,7 +113,7 @@ class RemainingComponentContractTest {
                     }
                     Matcher exceptionMatcher = EXCEPTION_HEADER.matcher(line);
                     if (exceptionMatcher.find()) {
-                        exceptions.add(source + ": " + exceptionMatcher.group(1));
+                        exceptions.add(source.toString().replace('\\', '/') + ": " + exceptionMatcher.group(1));
                     }
                 }
             }
@@ -121,8 +121,14 @@ class RemainingComponentContractTest {
 
         assertThat(enums).as("本模块手写字面量枚举必须全部纳入公共合同").hasSize(EXPECTED_HANDWRITTEN_ENUMS);
         assertThat(exceptions)
-                .as("REQ-002/REQ-003 对本模块不适用：starter 不声明自定义异常")
-                .isEmpty();
+                .as("只允许已批准的上下文技术异常，仍复用公共系统异常体系")
+                .containsExactly("src/main/java/top/egon/cola/component/dtp/exception/DtpContextPropagationException.java: DtpContextPropagationException");
+        var cause = new IllegalStateException("context");
+        var failure = new top.egon.cola.component.dtp.exception.DtpContextPropagationException("INSTALL", "user", cause);
+        assertThat(failure).isInstanceOf(top.egon.cola.component.common.core.exception.CommonException.class);
+        assertThat(failure.getCode()).isEqualTo(top.egon.cola.component.common.core.enums.ResultCode.SYSTEM_ERROR.getCode());
+        assertThat(failure.getExceptionCategory()).isEqualTo(top.egon.cola.component.common.core.enums.ExceptionCategory.SYSTEM);
+        assertThat(failure.getCause()).isSameAs(cause);
     }
 
     private static List<Class<? extends Enum<?>>> governedEnums() {

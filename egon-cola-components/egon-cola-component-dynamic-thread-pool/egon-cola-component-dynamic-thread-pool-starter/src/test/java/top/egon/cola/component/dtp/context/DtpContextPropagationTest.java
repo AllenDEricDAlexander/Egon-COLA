@@ -31,9 +31,103 @@ public class DtpContextPropagationTest {
 
     private static final String BUSINESS_KEY = "businessId";
 
+    @Test
+    void managedPoolRecapturesTheSameRunnableAndRestoresItsReusedWorker() throws Exception {
+        ThreadLocal<String> user = new ThreadLocal<>();
+        var accessor = new io.micrometer.context.ThreadLocalAccessor<String>() {
+            public Object key() { return "user"; }
+            public String getValue() { return user.get(); }
+            public void setValue(String value) { user.set(value); }
+            public void setValue() { user.remove(); }
+        };
+        var observer = new DtpTaskObserver("app", "one", "reuse",
+                new top.egon.cola.component.dtp.config.DynamicThreadPoolAutoProperties.Observation(), true,
+                new DtpTaskContextManager(java.util.List.of(accessor)));
+        var pool = new top.egon.cola.component.dtp.executor.managed.DtpThreadPoolTaskExecutor(observer);
+        pool.setCorePoolSize(1);
+        pool.setMaxPoolSize(1);
+        pool.setQueueCapacity(8);
+        pool.initialize();
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        var seen = new java.util.concurrent.CopyOnWriteArrayList<String>();
+        try {
+            pool.execute(() -> {
+                started.countDown();
+                try { release.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            });
+            assertThat(started.await(2, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            Runnable task = () -> {
+                seen.add(user.get() + ":" + MDC.get("traceId"));
+                user.set("task-mutation");
+                MDC.put("task-only", "must-restore");
+            };
+            user.set("A"); MDC.put("traceId", "trace-A"); pool.execute(task);
+            user.set("B"); MDC.put("traceId", "trace-B"); pool.execute(task);
+            user.remove(); MDC.clear(); pool.execute(task);
+            var restored = pool.getThreadPoolExecutor().submit(() -> user.get() == null && MDC.getCopyOfContextMap() == null);
+            release.countDown();
+            assertThat(restored.get(2, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            assertThat(seen).hasSize(3);
+            assertThat(seen.get(0)).isEqualTo("A:trace-A");
+            assertThat(seen.get(1)).isEqualTo("B:trace-B");
+            assertThat(seen.get(2)).startsWith("null:");
+        } finally {
+            release.countDown();
+            pool.shutdown();
+            user.remove();
+        }
+    }
+
     @AfterEach
     public void clearMdc() {
         MDC.clear();
+    }
+
+    @Test
+    void callerRunsFailureRestoresCustomHolderAndCallingThreadMdc() throws Exception {
+        ThreadLocal<String> user = new ThreadLocal<>();
+        var contexts = new DtpTaskContextManager(java.util.List.of(new io.micrometer.context.ThreadLocalAccessor<String>() {
+            public Object key() { return "caller.user"; }
+            public String getValue() { return user.get(); }
+            public void setValue(String value) { user.set(value); }
+            public void setValue() { user.remove(); }
+        }));
+        var observer = new DtpTaskObserver("app", "one", "caller",
+                new top.egon.cola.component.dtp.config.DynamicThreadPoolAutoProperties.Observation(), true, contexts);
+        var pool = new top.egon.cola.component.dtp.executor.managed.DtpThreadPoolTaskExecutor(observer);
+        pool.setCorePoolSize(1);
+        pool.setMaxPoolSize(1);
+        pool.setQueueCapacity(0);
+        pool.setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.CallerRunsPolicy());
+        pool.initialize();
+        var started = new java.util.concurrent.CountDownLatch(1);
+        var release = new java.util.concurrent.CountDownLatch(1);
+        RuntimeException original = new IllegalStateException("caller-runs");
+        try {
+            pool.execute(() -> {
+                started.countDown();
+                try { release.await(); } catch (InterruptedException e) { Thread.currentThread().interrupt(); }
+            });
+            assertThat(started.await(2, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+            user.set("caller");
+            MDC.put("traceId", "caller-trace");
+            var failed = pool.submit(() -> {
+                assertThat(user.get()).isEqualTo("caller");
+                user.set("task-mutation");
+                MDC.put("traceId", "task-trace");
+                throw original;
+            });
+            assertThatThrownBy(failed::get).hasCause(original);
+            assertThat(user.get()).isEqualTo("caller");
+            assertThat(MDC.get("traceId")).isEqualTo("caller-trace");
+            assertThat(observer.failedTasks()).isEqualTo(1);
+            assertThat(observer.rejectedTasks()).isEqualTo(1);
+        } finally {
+            release.countDown();
+            pool.shutdown();
+            user.remove();
+        }
     }
 
     @Test

@@ -11,6 +11,8 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadFactory;
 
 /**
  * @description ThreadManage 创建的上下文感知、可调队列 Spring 线程池
@@ -45,6 +47,12 @@ public final class DtpThreadPoolTaskExecutor extends ThreadPoolTaskExecutor {
         setRejectedExecutionHandler(new java.util.concurrent.ThreadPoolExecutor.AbortPolicy());
         setWaitForTasksToCompleteOnShutdown(true);
         setAwaitTerminationSeconds(30);
+        setThreadFactory(this);
+    }
+
+    @Override
+    public void setThreadFactory(ThreadFactory factory) {
+        super.setThreadFactory(observer == null ? factory : observer.threadFactory(factory == null ? this : factory));
     }
 
     public DtpTaskObserver taskObserver() { return observer; }
@@ -102,5 +110,16 @@ public final class DtpThreadPoolTaskExecutor extends ThreadPoolTaskExecutor {
         var future = observer.future(task, true);
         execute(future);
         return future;
+    }
+
+    @Override
+    public CompletableFuture<Void> submitCompletable(Runnable task) {
+        Objects.requireNonNull(task, "task");
+        return observer.completable(this, task, () -> { task.run(); return null; }, true);
+    }
+
+    @Override
+    public <T> CompletableFuture<T> submitCompletable(Callable<T> task) {
+        return observer.completable(this, Objects.requireNonNull(task, "task"), task, true);
     }
 }
